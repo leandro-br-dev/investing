@@ -1,0 +1,292 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de usuários
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  portfolio    Portfolio[]
+  simulations  Simulation[]
+  userSettings UserSettings?
+  transactions Transaction[]
+
+  @@map("users")
+}
+
+// Modelo de ativos
+model Asset {
+  id         String @id @default(cuid())
+  ticker     String @unique
+  name       String
+  currency   String // "BRL" ou "USD"
+  market     String // "B3", "NYSE", "NASDAQ", etc.
+  decimals   Int    @default(2) // Quantidade de casas decimais para o preço
+  minLotSize Int    @default(1) // Tamanho mínimo do lote (ex: 100 para ações B3)
+
+  // Dados fundamentalistas
+  sector            String? // Setor da empresa
+  industry          String? // Indústria específica
+  marketCap         Decimal? // Valor de mercado
+  sharesOutstanding Decimal? // Ações em circulação
+
+  // Indicadores fundamentalistas (atualizados periodicamente)
+  pe            Decimal? // P/E - Preço/Lucro
+  pb            Decimal? // P/VP - Preço/Valor Patrimonial
+  roe           Decimal? // ROE - Return on Equity
+  roa           Decimal? // ROA - Return on Assets
+  dividendYield Decimal? // Dividend Yield
+  debtToEquity  Decimal? // Dívida/Patrimônio
+  currentRatio  Decimal? // Liquidez Corrente
+  quickRatio    Decimal? // Liquidez Seca
+  priceToSales  Decimal? // P/Vendas
+  evEbitda      Decimal? // EV/EBITDA
+
+  // Dados financeiros anuais
+  revenue     Decimal? // Receita anual
+  netIncome   Decimal? // Lucro líquido
+  totalAssets Decimal? // Ativo total
+  totalEquity Decimal? // Patrimônio líquido
+  totalDebt   Decimal? // Dívida total
+
+  // Metadados
+  lastFundamentalUpdate DateTime? // Última atualização dos dados fundamentalistas
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @default(now()) @updatedAt
+
+  // Relacionamentos
+  historicalPrices    HistoricalPrice[]
+  portfolioItems      PortfolioItem[]
+  simulationItems     SimulationItem[]
+  transactions        Transaction[]
+  fundamentalAnalysis FundamentalAnalysis[]
+
+  @@map("assets")
+}
+
+// Modelo de preços históricos (migração dos dados antigos)
+model HistoricalPrice {
+  id     String  @id @default(cuid())
+  ticker String
+  date   String // Formato YYYY-MM-DD
+  open   Decimal
+  high   Decimal
+  low    Decimal
+  close  Decimal
+
+  // Relacionamento
+  asset Asset @relation(fields: [ticker], references: [ticker])
+
+  @@unique([ticker, date])
+  @@index([ticker])
+  @@index([ticker, date])
+  @@map("historical_prices")
+}
+
+// Modelo de carteira do usuário
+model Portfolio {
+  id     String @id @default(cuid())
+  userId String
+  name   String @default("Carteira Principal")
+
+  // Relacionamentos
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        PortfolioItem[]
+  transactions Transaction[]
+
+  @@map("portfolios")
+}
+
+// Itens da carteira (posições)
+model PortfolioItem {
+  id          String   @id @default(cuid())
+  portfolioId String
+  ticker      String
+  quantity    Decimal // Permite até 8 casas decimais para ações fracionárias
+  avgPrice    Decimal // Preço médio ponderado com 2 casas decimais
+  currency    String // "BRL" ou "USD"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [ticker], references: [ticker])
+
+  @@unique([portfolioId, ticker])
+  @@map("portfolio_items")
+}
+
+// Modelo de simulações
+model Simulation {
+  id                      String   @id @default(cuid())
+  userId                  String
+  name                    String
+  startDate               String // Formato YYYY-MM-DD
+  currentDate             String // Data atual da simulação
+  initialCashBRL          Decimal  @default(0)
+  initialCashUSD          Decimal  @default(0)
+  monthlyDepositBRL       Decimal  @default(0)
+  monthlyDepositUSD       Decimal  @default(0)
+  currentCashBRL          Decimal  @default(0)
+  currentCashUSD          Decimal  @default(0)
+  realizedProfitBRL       Decimal  @default(0)
+  realizedProfitUSD       Decimal  @default(0)
+  minPurchaseIntervalDays Int      @default(90) // Intervalo mínimo específico desta simulação
+  isActive                Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relacionamentos
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        SimulationItem[]
+  transactions Transaction[]
+
+  @@map("simulations")
+}
+
+// Itens da simulação (posições simuladas)
+model SimulationItem {
+  id           String   @id @default(cuid())
+  simulationId String
+  ticker       String
+  quantity     Decimal // Permite até 8 casas decimais para ações fracionárias
+  avgPrice     Decimal // Preço médio ponderado com 2 casas decimais
+  currency     String // "BRL" ou "USD"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relacionamentos
+  simulation Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  asset      Asset      @relation(fields: [ticker], references: [ticker])
+
+  @@unique([simulationId, ticker])
+  @@map("simulation_items")
+}
+
+// Configurações do usuário
+model UserSettings {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  buyPeriodMonths         Int      @default(12) // Período para mínima de compra
+  sellPeriodMonths        Int      @default(24) // Período para máxima de venda
+  minPurchaseIntervalDays Int      @default(90) // Intervalo mínimo entre compras do mesmo ativo (90 dias = ~3 meses)
+  theme                   String   @default("system") // "light", "dark", "system"
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relacionamento
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// Modelo de transações (histórico de operações)
+model Transaction {
+  id           String   @id @default(cuid())
+  userId       String
+  portfolioId  String? // Null se for transação de simulação
+  simulationId String? // Null se for transação real
+  ticker       String
+  type         String // "buy" ou "sell"
+  quantity     Decimal // Permite até 8 casas decimais para ações fracionárias
+  price        Decimal // Preço com 2 casas decimais
+  totalAmount  Decimal // quantity * price com 2 casas decimais
+  currency     String // "BRL" ou "USD"
+  executedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  // Relacionamentos
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolio  Portfolio?  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  simulation Simulation? @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  asset      Asset       @relation(fields: [ticker], references: [ticker])
+
+  @@index([userId])
+  @@index([portfolioId])
+  @@index([simulationId])
+  @@index([ticker])
+  @@index([executedAt])
+  @@map("transactions")
+}
+
+// Modelo de análise fundamentalista detalhada
+model FundamentalAnalysis {
+  id           String   @id @default(cuid())
+  ticker       String
+  analysisDate DateTime @default(now())
+
+  // Scores de análise (0-100)
+  valueScore    Int? // Score geral de valor
+  qualityScore  Int? // Score de qualidade da empresa
+  growthScore   Int? // Score de crescimento
+  dividendScore Int? // Score de dividendos
+  overallScore  Int? // Score geral combinado
+
+  // Classificações específicas
+  grahamNumber        Decimal? // Número de Graham
+  peterLynchFairValue Decimal? // Valor justo Peter Lynch
+  discountedCashFlow  Decimal? // Fluxo de caixa descontado
+  bookValue           Decimal? // Valor patrimonial por ação
+
+  // Análises comparativas
+  sectorPeAvg  Decimal? // P/E médio do setor
+  sectorPbAvg  Decimal? // P/VP médio do setor
+  sectorRoeAvg Decimal? // ROE médio do setor
+
+  // Tendências (crescimento nos últimos anos)
+  revenueGrowth3Y  Decimal? // Crescimento de receita (3 anos)
+  earningsGrowth3Y Decimal? // Crescimento de lucros (3 anos)
+  equityGrowth3Y   Decimal? // Crescimento patrimonial (3 anos)
+
+  // Recomendações
+  recommendation String? // "BUY", "HOLD", "SELL"
+  targetPrice    Decimal? // Preço alvo
+  riskLevel      String? // "LOW", "MEDIUM", "HIGH"
+  timeHorizon    String? // "SHORT", "MEDIUM", "LONG"
+
+  // Observações
+  strengths  String? // Pontos fortes identificados
+  weaknesses String? // Pontos fracos identificados
+  catalysts  String? // Catalisadores de crescimento
+  risks      String? // Principais riscos
+
+  // Relacionamento
+  asset Asset @relation(fields: [ticker], references: [ticker])
+
+  @@index([ticker])
+  @@index([analysisDate])
+  @@map("fundamental_analysis")
+}
+
+// Modelo de logs do scheduler automático
+model SchedulerLog {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  type          String // "hourly", "daily", "manual"
+  trigger       String // "users_online", "scheduled", "force"
+  status        String // "started", "completed", "failed"
+  duration      Int? // Duração em milissegundos
+  recordsUpdated Int? // Número de registros atualizados
+  errors        Int? // Número de erros
+  details       String? // JSON stringified com detalhes
+  createdAt     DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([type])
+  @@index([status])
+  @@map("scheduler_logs")
+}
