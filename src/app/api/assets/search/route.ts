@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -25,46 +25,47 @@ export async function GET(req: NextRequest) {
         OR: [
           {
             ticker: {
-              contains: query.toUpperCase()
-            }
+              contains: query.toUpperCase(),
+            },
           },
           {
             name: {
-              contains: query
-            }
-          }
-        ]
+              contains: query,
+            },
+          },
+        ],
       },
       include: {
         historicalPrices: {
-          where: simulationDate ? {
-            date: { lte: simulationDate }
-          } : undefined,
-          orderBy: { date: 'desc' },
-          take: 1
-        }
+          where: simulationDate
+            ? {
+                date: { lte: simulationDate },
+              }
+            : undefined,
+          orderBy: { date: "desc" },
+          take: 1,
+        },
       },
-      take: 10
+      take: 10,
     })
 
     // Formatar resultado com preço atual
-    const formattedAssets = assets.map((asset: any) => ({
+    const formattedAssets = assets.map((asset: unknown) => ({
       ticker: asset.ticker,
       name: asset.name,
       currency: asset.currency,
       market: asset.market,
       decimals: asset.decimals,
       minLotSize: asset.minLotSize,
-      price: asset.historicalPrices[0]?.close || 0
+      price: asset.historicalPrices[0]?.close || 0,
     }))
 
     return NextResponse.json({
       assets: formattedAssets,
-      total: formattedAssets.length
+      total: formattedAssets.length,
     })
-
   } catch (error) {
-    console.error('Error searching assets:', error)
+    console.error("Error searching assets:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

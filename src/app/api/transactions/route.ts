@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50")
     const offset = parseInt(searchParams.get("offset") || "0")
 
-    const userId = (session as any).user.id
+    const userId = (session as unknown).user.id
 
     // Build filter conditions
-    const where: any = { userId }
+    const where: unknown = { userId }
 
     if (portfolioId) {
       where.portfolioId = portfolioId
@@ -46,32 +46,32 @@ export async function GET(req: NextRequest) {
       include: {
         asset: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
         portfolio: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
         simulation: {
           select: {
-            name: true
-          }
-        }
+            name: true,
+          },
+        },
       },
       orderBy: {
-        executedAt: 'desc'
+        executedAt: "desc",
       },
       take: limit,
-      skip: offset
+      skip: offset,
     })
 
     // Get total count for pagination
     const totalCount = await prisma.transaction.count({ where })
 
     // Format response
-    const formattedTransactions = transactions.map((transaction: any) => ({
+    const formattedTransactions = transactions.map((transaction: unknown) => ({
       id: transaction.id,
       ticker: transaction.ticker,
       assetName: transaction.asset.name,
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
       executedAt: transaction.executedAt,
       portfolioName: transaction.portfolio?.name || null,
       simulationName: transaction.simulation?.name || null,
-      isSimulation: !!transaction.simulationId
+      isSimulation: !!transaction.simulationId,
     }))
 
     return NextResponse.json({
@@ -92,12 +92,11 @@ export async function GET(req: NextRequest) {
         total: totalCount,
         limit,
         offset,
-        hasMore: offset + limit < totalCount
-      }
+        hasMore: offset + limit < totalCount,
+      },
     })
-
   } catch (error) {
-    console.error('Error fetching transactions:', error)
+    console.error("Error fetching transactions:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

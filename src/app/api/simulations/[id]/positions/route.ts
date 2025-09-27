@@ -10,52 +10,58 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = (session as any).user.id
+    const userId = (session as unknown).user.id
     const simulationId = params.id
 
     // Verificar se a simulação pertence ao usuário
     const simulation = await prisma.simulation.findFirst({
       where: {
         id: simulationId,
-        userId
-      }
+        userId,
+      },
     })
 
     if (!simulation) {
-      return NextResponse.json({ error: "Simulation not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Simulation not found" },
+        { status: 404 }
+      )
     }
 
     // Buscar posições ativas da simulação
     const positions = await prisma.simulationItem.findMany({
       where: {
         simulationId,
-        quantity: { gt: 0 }
+        quantity: { gt: 0 },
       },
       include: {
         asset: {
           include: {
             historicalPrices: {
               where: {
-                date: { lte: simulation.currentDate }
+                date: { lte: simulation.currentDate },
               },
-              orderBy: { date: 'desc' },
-              take: 1
-            }
-          }
-        }
-      }
+              orderBy: { date: "desc" },
+              take: 1,
+            },
+          },
+        },
+      },
     })
 
-    const enrichedPositions = positions.map((position: any) => {
-      const currentPrice = Number(position.asset.historicalPrices[0]?.close || position.avgPrice)
+    const enrichedPositions = positions.map((position: unknown) => {
+      const currentPrice = Number(
+        position.asset.historicalPrices[0]?.close || position.avgPrice
+      )
       const currentValue = Number(position.quantity) * currentPrice
       const totalCost = Number(position.quantity) * Number(position.avgPrice)
       const profitLoss = currentValue - totalCost
-      const profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0
+      const profitLossPercent =
+        totalCost > 0 ? (profitLoss / totalCost) * 100 : 0
 
       return {
         ticker: position.ticker,
@@ -69,18 +75,31 @@ export async function GET(
         totalCost,
         profitLoss,
         profitLossPercent: Number(profitLossPercent.toFixed(2)),
-        lastUpdate: position.asset.historicalPrices[0]?.date || simulation.currentDate
+        lastUpdate:
+          position.asset.historicalPrices[0]?.date || simulation.currentDate,
       }
     })
 
     // Calcular totais por moeda
-    const brlPositions = enrichedPositions.filter(p => p.currency === "BRL")
-    const usdPositions = enrichedPositions.filter(p => p.currency === "USD")
+    const brlPositions = enrichedPositions.filter((p) => p.currency === "BRL")
+    const usdPositions = enrichedPositions.filter((p) => p.currency === "USD")
 
-    const totalBRL = brlPositions.reduce((sum, pos) => sum + pos.currentValue, 0)
-    const totalUSD = usdPositions.reduce((sum, pos) => sum + pos.currentValue, 0)
-    const totalCostBRL = brlPositions.reduce((sum, pos) => sum + pos.totalCost, 0)
-    const totalCostUSD = usdPositions.reduce((sum, pos) => sum + pos.totalCost, 0)
+    const totalBRL = brlPositions.reduce(
+      (sum, pos) => sum + pos.currentValue,
+      0
+    )
+    const totalUSD = usdPositions.reduce(
+      (sum, pos) => sum + pos.currentValue,
+      0
+    )
+    const totalCostBRL = brlPositions.reduce(
+      (sum, pos) => sum + pos.totalCost,
+      0
+    )
+    const totalCostUSD = usdPositions.reduce(
+      (sum, pos) => sum + pos.totalCost,
+      0
+    )
     const profitLossBRL = totalBRL - totalCostBRL
     const profitLossUSD = totalUSD - totalCostUSD
 
@@ -93,23 +112,24 @@ export async function GET(
           currentValue: totalBRL,
           totalCost: totalCostBRL,
           profitLoss: profitLossBRL,
-          profitLossPercent: totalCostBRL > 0 ? ((profitLossBRL / totalCostBRL) * 100) : 0,
-          cashBalance: Number(simulation.currentCashBRL || 0)
+          profitLossPercent:
+            totalCostBRL > 0 ? (profitLossBRL / totalCostBRL) * 100 : 0,
+          cashBalance: Number(simulation.currentCashBRL || 0),
         },
         usd: {
           positions: usdPositions.length,
           currentValue: totalUSD,
           totalCost: totalCostUSD,
           profitLoss: profitLossUSD,
-          profitLossPercent: totalCostUSD > 0 ? ((profitLossUSD / totalCostUSD) * 100) : 0,
-          cashBalance: Number(simulation.currentCashUSD || 0)
-        }
+          profitLossPercent:
+            totalCostUSD > 0 ? (profitLossUSD / totalCostUSD) * 100 : 0,
+          cashBalance: Number(simulation.currentCashUSD || 0),
+        },
       },
-      simulationDate: simulation.currentDate
+      simulationDate: simulation.currentDate,
     })
-
   } catch (error) {
-    console.error('Error fetching simulation positions:', error)
+    console.error("Error fetching simulation positions:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

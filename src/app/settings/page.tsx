@@ -6,26 +6,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Settings, User, Palette, Database, Shield, Bell, Loader2 } from "lucide-react"
+import {
+  Settings,
+  User,
+  Palette,
+  Database,
+  Shield,
+  Bell,
+  Loader2,
+} from "lucide-react"
 import { useTheme } from "@/lib/theme-provider"
-import { cn } from "@/lib/utils"
+// cn import removed as unused
 import { UserSettings } from "@/types"
 
 export default function SettingsPage() {
   const { data: session } = useSession()
   const { theme, setTheme, actualTheme } = useTheme()
-  const [userSettings, setUserSettings] = useState<UserSettings | null>(null)
+  const [, setUserSettings] = useState<UserSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
     buyPeriodMonths: 12,
     sellPeriodMonths: 24,
     minPurchaseIntervalDays: 90,
-    defaultCurrency: "BRL" as "BRL" | "USD"
+    defaultCurrency: "BRL" as "BRL" | "USD",
   })
   const [userProfile, setUserProfile] = useState({
     name: "",
-    email: ""
+    email: "",
   })
 
   useEffect(() => {
@@ -33,14 +41,14 @@ export default function SettingsPage() {
     if (session?.user) {
       setUserProfile({
         name: session.user.name || "",
-        email: session.user.email || ""
+        email: session.user.email || "",
       })
     }
   }, [session])
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch('/api/settings')
+      const response = await fetch("/api/settings")
       if (response.ok) {
         const settings: UserSettings = await response.json()
         setUserSettings(settings)
@@ -48,11 +56,11 @@ export default function SettingsPage() {
           buyPeriodMonths: settings.buyPeriodMonths,
           sellPeriodMonths: settings.sellPeriodMonths,
           minPurchaseIntervalDays: settings.minPurchaseIntervalDays || 90,
-          defaultCurrency: settings.defaultCurrency
+          defaultCurrency: settings.defaultCurrency,
         })
       }
     } catch (error) {
-      console.error('Error fetching settings:', error)
+      console.error("Error fetching settings:", error)
     } finally {
       setLoading(false)
     }
@@ -61,19 +69,19 @@ export default function SettingsPage() {
   const saveSettings = async () => {
     setSaving(true)
     try {
-      const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       })
 
       if (response.ok) {
         const updatedSettings = await response.json()
         setUserSettings(updatedSettings)
-        console.log('✅ Configurações salvas com sucesso')
+        console.log("✅ Configurações salvas com sucesso")
       }
     } catch (error) {
-      console.error('Error saving settings:', error)
+      console.error("Error saving settings:", error)
     } finally {
       setSaving(false)
     }
@@ -104,7 +112,19 @@ export default function SettingsPage() {
             <div>
               <Label className="text-sm font-medium">Preferência de Tema</Label>
               <p className="text-xs text-muted-foreground mb-3">
-                Tema atual: {actualTheme === 'light' ? 'claro' : actualTheme === 'dark' ? 'escuro' : 'sistema'} (preferência: {theme === 'light' ? 'claro' : theme === 'dark' ? 'escuro' : 'sistema'})
+                Tema atual:{" "}
+                {actualTheme === "light"
+                  ? "claro"
+                  : actualTheme === "dark"
+                    ? "escuro"
+                    : "sistema"}{" "}
+                (preferência:{" "}
+                {theme === "light"
+                  ? "claro"
+                  : theme === "dark"
+                    ? "escuro"
+                    : "sistema"}
+                )
               </p>
               <div className="flex space-x-2">
                 <Button
@@ -151,7 +171,9 @@ export default function SettingsPage() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Período de Compra (Meses)</label>
+                    <label className="text-sm font-medium">
+                      Período de Compra (Meses)
+                    </label>
                     <p className="text-xs text-muted-foreground mb-2">
                       Período para cálculo do preço mínimo de referência
                     </p>
@@ -160,14 +182,18 @@ export default function SettingsPage() {
                       min="1"
                       max="60"
                       value={formData.buyPeriodMonths}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        buyPeriodMonths: parseInt(e.target.value) || 12
-                      }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          buyPeriodMonths: parseInt(e.target.value) || 12,
+                        }))
+                      }
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Período de Venda (Meses)</label>
+                    <label className="text-sm font-medium">
+                      Período de Venda (Meses)
+                    </label>
                     <p className="text-xs text-muted-foreground mb-2">
                       Período para cálculo do preço máximo de referência
                     </p>
@@ -176,14 +202,18 @@ export default function SettingsPage() {
                       min="1"
                       max="60"
                       value={formData.sellPeriodMonths}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        sellPeriodMonths: parseInt(e.target.value) || 24
-                      }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          sellPeriodMonths: parseInt(e.target.value) || 24,
+                        }))
+                      }
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Intervalo Entre Compras (Dias)</label>
+                    <label className="text-sm font-medium">
+                      Intervalo Entre Compras (Dias)
+                    </label>
                     <p className="text-xs text-muted-foreground mb-2">
                       Tempo mínimo entre compras do mesmo ativo para preço médio
                     </p>
@@ -192,10 +222,13 @@ export default function SettingsPage() {
                       min="0"
                       max="365"
                       value={formData.minPurchaseIntervalDays}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        minPurchaseIntervalDays: parseInt(e.target.value) || 90
-                      }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          minPurchaseIntervalDays:
+                            parseInt(e.target.value) || 90,
+                        }))
+                      }
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       0 = sem limite, 90 = ~3 meses (recomendado)
@@ -209,16 +242,34 @@ export default function SettingsPage() {
                   </p>
                   <div className="flex space-x-2">
                     <Button
-                      variant={formData.defaultCurrency === "BRL" ? "default" : "outline"}
+                      variant={
+                        formData.defaultCurrency === "BRL"
+                          ? "default"
+                          : "outline"
+                      }
                       size="sm"
-                      onClick={() => setFormData(prev => ({ ...prev, defaultCurrency: "BRL" }))}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          defaultCurrency: "BRL",
+                        }))
+                      }
                     >
                       🇧🇷 BRL
                     </Button>
                     <Button
-                      variant={formData.defaultCurrency === "USD" ? "default" : "outline"}
+                      variant={
+                        formData.defaultCurrency === "USD"
+                          ? "default"
+                          : "outline"
+                      }
                       size="sm"
-                      onClick={() => setFormData(prev => ({ ...prev, defaultCurrency: "USD" }))}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          defaultCurrency: "USD",
+                        }))
+                      }
                     >
                       🇺🇸 USD
                     </Button>
@@ -230,7 +281,9 @@ export default function SettingsPage() {
                     disabled={saving}
                     className="min-w-32"
                   >
-                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {saving && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     {saving ? "Salvando..." : "Salvar Configurações"}
                   </Button>
                 </div>
@@ -257,7 +310,8 @@ export default function SettingsPage() {
               <Input value={userProfile.email} className="mt-1" disabled />
             </div>
             <p className="text-xs text-muted-foreground">
-              Para alterar essas informações, entre em contato com o suporte ou gerencie sua conta através do provedor de autenticação.
+              Para alterar essas informações, entre em contato com o suporte ou
+              gerencie sua conta através do provedor de autenticação.
             </p>
           </CardContent>
         </Card>
@@ -360,11 +414,18 @@ export default function SettingsPage() {
               <div className="space-y-2 mt-2">
                 <Input type="password" placeholder="Senha atual" disabled />
                 <Input type="password" placeholder="Nova senha" disabled />
-                <Input type="password" placeholder="Confirmar nova senha" disabled />
+                <Input
+                  type="password"
+                  placeholder="Confirmar nova senha"
+                  disabled
+                />
               </div>
-              <Button className="mt-3" disabled>Atualizar Senha</Button>
+              <Button className="mt-3" disabled>
+                Atualizar Senha
+              </Button>
               <p className="text-xs text-muted-foreground mt-2">
-                A alteração de senha deve ser feita através do seu provedor de autenticação.
+                A alteração de senha deve ser feita através do seu provedor de
+                autenticação.
               </p>
             </div>
           </CardContent>

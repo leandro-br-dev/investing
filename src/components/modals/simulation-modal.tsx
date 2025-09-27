@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatCurrency, formatDate } from "@/lib/utils"
-import { Play, Calendar, DollarSign, Target } from "lucide-react"
+import { Play, DollarSign, Target } from "lucide-react"
 
 interface SimulationModalProps {
   isOpen: boolean
@@ -19,15 +19,31 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
     startDate: "2023-01-01",
     initialBalance: "100000",
     strategy: "conservative",
-    description: ""
+    description: "",
   })
 
   const strategies = [
-    { id: "conservative", name: "Conservative", description: "Low risk, steady growth" },
-    { id: "balanced", name: "Balanced", description: "Moderate risk and return" },
-    { id: "aggressive", name: "Aggressive", description: "High risk, high potential return" },
-    { id: "value", name: "Value Investing", description: "Buy undervalued assets" },
-    { id: "growth", name: "Growth", description: "Focus on growth stocks" }
+    {
+      id: "conservative",
+      name: "Conservative",
+      description: "Low risk, steady growth",
+    },
+    {
+      id: "balanced",
+      name: "Balanced",
+      description: "Moderate risk and return",
+    },
+    {
+      id: "aggressive",
+      name: "Aggressive",
+      description: "High risk, high potential return",
+    },
+    {
+      id: "value",
+      name: "Value Investing",
+      description: "Buy undervalued assets",
+    },
+    { id: "growth", name: "Growth", description: "Focus on growth stocks" },
   ]
 
   const handleSubmit = () => {
@@ -36,14 +52,15 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
       initialBalance: parseFloat(formData.initialBalance),
       createdAt: new Date().toISOString(),
       currentDate: formData.startDate,
-      isActive: false
+      isActive: false,
     }
 
     console.log("New Simulation:", newSimulation)
     onClose()
   }
 
-  const isValid = formData.name.trim() && parseFloat(formData.initialBalance) > 0
+  const isValid =
+    formData.name.trim() && parseFloat(formData.initialBalance) > 0
 
   return (
     <Modal
@@ -56,10 +73,14 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
         {/* Simulation Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Simulation Name</label>
+            <label className="block text-sm font-medium mb-2">
+              Simulation Name
+            </label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
               placeholder="My Investment Strategy"
             />
           </div>
@@ -69,21 +90,30 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
             <Input
               type="date"
               value={formData.startDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-              max={new Date().toISOString().split('T')[0]}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, startDate: e.target.value }))
+              }
+              max={new Date().toISOString().split("T")[0]}
             />
           </div>
         </div>
 
         {/* Initial Balance */}
         <div>
-          <label className="block text-sm font-medium mb-2">Initial Balance (USD)</label>
+          <label className="block text-sm font-medium mb-2">
+            Initial Balance (USD)
+          </label>
           <div className="relative">
             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="number"
               value={formData.initialBalance}
-              onChange={(e) => setFormData(prev => ({ ...prev, initialBalance: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  initialBalance: e.target.value,
+                }))
+              }
               placeholder="100000"
               min="1000"
               step="1000"
@@ -97,16 +127,22 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
 
         {/* Strategy Selection */}
         <div>
-          <label className="block text-sm font-medium mb-3">Investment Strategy</label>
+          <label className="block text-sm font-medium mb-3">
+            Investment Strategy
+          </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {strategies.map((strategy) => (
               <Card
                 key={strategy.id}
-                variant={formData.strategy === strategy.id ? "elevated" : "outline"}
+                variant={
+                  formData.strategy === strategy.id ? "elevated" : "outline"
+                }
                 className={`cursor-pointer transition-colors ${
                   formData.strategy === strategy.id ? "ring-2 ring-primary" : ""
                 }`}
-                onClick={() => setFormData(prev => ({ ...prev, strategy: strategy.id }))}
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, strategy: strategy.id }))
+                }
               >
                 <CardContent className="p-4">
                   <div className="flex items-start">
@@ -126,10 +162,14 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium mb-2">Description (Optional)</label>
+          <label className="block text-sm font-medium mb-2">
+            Description (Optional)
+          </label>
           <textarea
             value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, description: e.target.value }))
+            }
             placeholder="Describe your simulation goals and approach..."
             className="w-full p-3 border border-border rounded-md bg-background text-foreground resize-none h-20"
           />
@@ -151,13 +191,17 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Initial Balance:</span>
                 <span className="font-medium">
-                  {formatCurrency(parseFloat(formData.initialBalance) || 0, "USD")}
+                  {formatCurrency(
+                    parseFloat(formData.initialBalance) || 0,
+                    "USD"
+                  )}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Strategy:</span>
                 <span>
-                  {strategies.find(s => s.id === formData.strategy)?.name || "Not selected"}
+                  {strategies.find((s) => s.id === formData.strategy)?.name ||
+                    "Not selected"}
                 </span>
               </div>
             </div>
@@ -169,11 +213,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!isValid}
-            className="flex-1"
-          >
+          <Button onClick={handleSubmit} disabled={!isValid} className="flex-1">
             <Play className="mr-2 h-4 w-4" />
             Create Simulation
           </Button>

@@ -3,15 +3,15 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = (session as any).user.id
+    const userId = (session as unknown).user.id
 
     // Buscar simulações do usuário
     const simulations = await prisma.simulation.findMany({
@@ -22,25 +22,27 @@ export async function GET(req: NextRequest) {
             asset: {
               include: {
                 historicalPrices: {
-                  orderBy: { date: 'desc' },
-                  take: 1
-                }
-              }
-            }
-          }
-        }
+                  orderBy: { date: "desc" },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     })
 
     // Calcular dados das simulações
-    const enrichedSimulations = simulations.map((simulation: any) => {
+    const enrichedSimulations = simulations.map((simulation: unknown) => {
       // Calcular valor atual baseado nos preços atuais
       let currentValueBRL = Number(simulation.currentCashBRL)
       let currentValueUSD = Number(simulation.currentCashUSD)
 
-      simulation.items.forEach((item: any) => {
-        const currentPrice = Number(item.asset.historicalPrices[0]?.close || item.avgPrice)
+      simulation.items.forEach((item: unknown) => {
+        const currentPrice = Number(
+          item.asset.historicalPrices[0]?.close || item.avgPrice
+        )
         const currentValue = Number(item.quantity) * currentPrice
 
         if (item.currency === "BRL") {
@@ -51,13 +53,20 @@ export async function GET(req: NextRequest) {
       })
 
       const totalCurrentValue = currentValueBRL + currentValueUSD
-      const totalInitialValue = Number(simulation.initialCashBRL) + Number(simulation.initialCashUSD)
-      const totalReturn = totalInitialValue > 0 ? ((totalCurrentValue - totalInitialValue) / totalInitialValue) * 100 : 0
+      const totalInitialValue =
+        Number(simulation.initialCashBRL) + Number(simulation.initialCashUSD)
+      const totalReturn =
+        totalInitialValue > 0
+          ? ((totalCurrentValue - totalInitialValue) / totalInitialValue) * 100
+          : 0
 
       // Calcular duração em meses
       const startDate = new Date(simulation.startDate)
       const currentDate = new Date(simulation.currentDate)
-      const monthsElapsed = Math.round((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30))
+      const monthsElapsed = Math.round(
+        (currentDate.getTime() - startDate.getTime()) /
+          (1000 * 60 * 60 * 24 * 30)
+      )
 
       return {
         id: simulation.id,
@@ -81,17 +90,16 @@ export async function GET(req: NextRequest) {
         monthsElapsed,
         positionsCount: simulation.items.length,
         createdAt: simulation.createdAt,
-        updatedAt: simulation.updatedAt
+        updatedAt: simulation.updatedAt,
       }
     })
 
     return NextResponse.json({
       simulations: enrichedSimulations,
-      total: enrichedSimulations.length
+      total: enrichedSimulations.length,
     })
-
   } catch (error) {
-    console.error('Error fetching simulations:', error)
+    console.error("Error fetching simulations:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -103,11 +111,11 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = (session as any).user.id
+    const userId = (session as unknown).user.id
     const body = await req.json()
     const {
       name,
@@ -116,7 +124,7 @@ export async function POST(req: NextRequest) {
       initialCashUSD = 0,
       monthlyDepositBRL = 0,
       monthlyDepositUSD = 0,
-      minPurchaseIntervalDays = 90
+      minPurchaseIntervalDays = 90,
     } = body
 
     // Converter para números
@@ -143,7 +151,10 @@ export async function POST(req: NextRequest) {
 
     if (initialBRL === 0 && initialUSD === 0) {
       return NextResponse.json(
-        { error: "At least one currency must have initial capital greater than 0" },
+        {
+          error:
+            "At least one currency must have initial capital greater than 0",
+        },
         { status: 400 }
       )
     }
@@ -162,14 +173,13 @@ export async function POST(req: NextRequest) {
         monthlyDepositBRL: monthlyBRL,
         monthlyDepositUSD: monthlyUSD,
         minPurchaseIntervalDays: intervalDays,
-        isActive: true
-      }
+        isActive: true,
+      },
     })
 
     return NextResponse.json(simulation, { status: 201 })
-
   } catch (error) {
-    console.error('Error creating simulation:', error)
+    console.error("Error creating simulation:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

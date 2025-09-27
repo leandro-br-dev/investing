@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     // Buscar configurações do usuário para períodos
     const userSettings = await prisma.userSettings.findUnique({
-      where: { userId: (session as any).user.id }
+      where: { userId: (session as unknown).user.id },
     })
 
     const buyPeriodMonths = userSettings?.buyPeriodMonths || 12
@@ -41,55 +41,63 @@ export async function GET(req: NextRequest) {
         historicalPrices: {
           where: {
             date: {
-              gte: sellPeriodDate.toISOString().split('T')[0],
-              lte: referenceDate.toISOString().split('T')[0]
-            }
+              gte: sellPeriodDate.toISOString().split("T")[0],
+              lte: referenceDate.toISOString().split("T")[0],
+            },
           },
-          orderBy: { date: 'desc' }
-        }
-      }
+          orderBy: { date: "desc" },
+        },
+      },
     })
 
     // Calcular oportunidades
-    const opportunities = assets.map(asset => {
-      const prices = asset.historicalPrices
+    const opportunities = assets
+      .map((asset) => {
+        const prices = asset.historicalPrices
 
-      if (prices.length === 0) return null
+        if (prices.length === 0) return null
 
-      // Preço atual (mais recente)
-      const currentPrice = Number(prices[0].close)
+        // Preço atual (mais recente)
+        const currentPrice = Number(prices[0].close)
 
-      // Preços no período de compra (mínima) - filtrando até a data de referência
-      const buyPeriodPrices = prices.filter(p => {
-        const priceDate = new Date(p.date)
-        return priceDate >= buyPeriodDate && priceDate <= referenceDate
+        // Preços no período de compra (mínima) - filtrando até a data de referência
+        const buyPeriodPrices = prices.filter((p) => {
+          const priceDate = new Date(p.date)
+          return priceDate >= buyPeriodDate && priceDate <= referenceDate
+        })
+        const minPrice =
+          buyPeriodPrices.length > 0
+            ? Math.min(...buyPeriodPrices.map((p) => Number(p.low)))
+            : currentPrice
+
+        // Preços no período de venda (máxima) - filtrando até a data de referência
+        const sellPeriodPrices = prices.filter((p) => {
+          const priceDate = new Date(p.date)
+          return priceDate >= sellPeriodDate && priceDate <= referenceDate
+        })
+        const maxPrice =
+          sellPeriodPrices.length > 0
+            ? Math.max(...sellPeriodPrices.map((p) => Number(p.high)))
+            : currentPrice
+
+        // Calcular proximidade da mínima e potencial de retorno
+        const proximity = (currentPrice / minPrice - 1) * 100
+        const potential = (maxPrice / currentPrice - 1) * 100
+
+        return {
+          ticker: asset.ticker,
+          name: asset.name,
+          currency: asset.currency,
+          market: asset.market,
+          price: currentPrice,
+          proximity: Number(proximity.toFixed(2)),
+          potential: Number(potential.toFixed(2)),
+          minPrice,
+          maxPrice,
+          lastUpdate: prices[0].date,
+        }
       })
-      const minPrice = buyPeriodPrices.length > 0 ? Math.min(...buyPeriodPrices.map(p => Number(p.low))) : currentPrice
-
-      // Preços no período de venda (máxima) - filtrando até a data de referência
-      const sellPeriodPrices = prices.filter(p => {
-        const priceDate = new Date(p.date)
-        return priceDate >= sellPeriodDate && priceDate <= referenceDate
-      })
-      const maxPrice = sellPeriodPrices.length > 0 ? Math.max(...sellPeriodPrices.map(p => Number(p.high))) : currentPrice
-
-      // Calcular proximidade da mínima e potencial de retorno
-      const proximity = ((currentPrice / minPrice) - 1) * 100
-      const potential = ((maxPrice / currentPrice) - 1) * 100
-
-      return {
-        ticker: asset.ticker,
-        name: asset.name,
-        currency: asset.currency,
-        market: asset.market,
-        price: currentPrice,
-        proximity: Number(proximity.toFixed(2)),
-        potential: Number(potential.toFixed(2)),
-        minPrice,
-        maxPrice,
-        lastUpdate: prices[0].date
-      }
-    }).filter(Boolean)
+      .filter(Boolean)
 
     // Ordenar por proximidade da mínima (mais próximo = melhor oportunidade)
     const sortedOpportunities = opportunities
@@ -103,8 +111,8 @@ export async function GET(req: NextRequest) {
         buyPeriodMonths,
         sellPeriodMonths,
         total: opportunities.length,
-        lastUpdate: new Date().toISOString()
-      }
+        lastUpdate: new Date().toISOString(),
+      },
     })
 
     // Add cache headers for opportunities (cache for 5 minutes)
@@ -114,9 +122,8 @@ export async function GET(req: NextRequest) {
     })
 
     return response
-
   } catch (error) {
-    console.error('Error fetching opportunities:', error)
+    console.error("Error fetching opportunities:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

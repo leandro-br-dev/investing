@@ -1,22 +1,64 @@
 "use client"
 
-import { useEffect, useState, lazy, Suspense } from "react"
+import { useEffect, useState, useCallback, lazy, Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Play, Plus, Calendar, BarChart3, Clock, TrendingUp, Loader2, RefreshCw, FastForward, ShoppingCart, TrendingDown, Target, Trash2, X, DollarSign } from "lucide-react"
-import { formatCurrency, formatPercentage, formatDate, getPercentageColor } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
+  Play,
+  Plus,
+  Calendar,
+  BarChart3,
+  Clock,
+  TrendingUp,
+  Loader2,
+  RefreshCw,
+  FastForward,
+  ShoppingCart,
+  TrendingDown,
+  Target,
+  Trash2,
+  X,
+  DollarSign,
+} from "lucide-react"
+import {
+  formatCurrency,
+  formatPercentage,
+  formatDate,
+  getPercentageColor,
+} from "@/lib/utils"
 import { cn } from "@/lib/utils"
 
 // Lazy load modals
-const NewSimulationModal = lazy(() => import("@/components/modals/new-simulation-modal").then(module => ({ default: module.NewSimulationModal })))
-const TransactionModal = lazy(() => import("@/components/modals/transaction-modal").then(module => ({ default: module.TransactionModal })))
-const AssetChartModal = lazy(() => import("@/components/modals/asset-chart-modal").then(module => ({ default: module.AssetChartModal })))
+const NewSimulationModal = lazy(() =>
+  import("@/components/modals/new-simulation-modal").then((module) => ({
+    default: module.NewSimulationModal,
+  }))
+)
+const TransactionModal = lazy(() =>
+  import("@/components/modals/transaction-modal").then((module) => ({
+    default: module.TransactionModal,
+  }))
+)
+const AssetChartModal = lazy(() =>
+  import("@/components/modals/asset-chart-modal").then((module) => ({
+    default: module.AssetChartModal,
+  }))
+)
 
 // Loading components
-import { ModalSkeleton, ChartModalSkeleton } from "@/components/loading/modal-skeleton"
+import {
+  ModalSkeleton,
+  ChartModalSkeleton,
+} from "@/components/loading/modal-skeleton"
 
 interface Simulation {
   id: string
@@ -100,56 +142,66 @@ export default function SimulatorPage() {
   const [positionsSummary, setPositionsSummary] = useState<any>(null)
   const [loadingPositions, setLoadingPositions] = useState(false)
 
-  const fetchSimulations = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true)
-    else setLoading(true)
+  const fetchSimulations = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true)
+      else setLoading(true)
 
-    try {
-      const response = await fetch('/api/simulations')
-      const data = await response.json()
+      try {
+        const response = await fetch("/api/simulations")
+        const data = await response.json()
 
-      setSimulations(data.simulations || [])
+        setSimulations(data.simulations || [])
 
-      // Selecionar primeira simulação se não há uma selecionada
-      if (!selectedSim && data.simulations?.length > 0) {
-        setSelectedSim(data.simulations[0])
+        // Selecionar primeira simulação se não há uma selecionada
+        if (!selectedSim && data.simulations?.length > 0) {
+          setSelectedSim(data.simulations[0])
+        }
+      } catch (error) {
+        console.error("Error fetching simulations:", error)
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
       }
-    } catch (error) {
-      console.error('Error fetching simulations:', error)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }
+    },
+    [selectedSim]
+  )
 
   const advanceTime = async (period: string, amount = 1) => {
     if (!selectedSim) return
 
     setAdvancing(true)
     try {
-      const response = await fetch(`/api/simulations/${selectedSim.id}/advance`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ period, amount }),
-      })
+      const response = await fetch(
+        `/api/simulations/${selectedSim.id}/advance`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ period, amount }),
+        }
+      )
 
       if (response.ok) {
         const data = await response.json()
 
         // Atualizar a simulação selecionada imediatamente com os novos dados
         if (data.simulation && selectedSim) {
-          setSelectedSim(prev => prev ? {
-            ...prev,
-            currentDate: data.simulation.currentDate,
-            currentCashBRL: data.simulation.currentCashBRL,
-            currentCashUSD: data.simulation.currentCashUSD,
-            currentValueBRL: data.simulation.totalValueBRL,
-            currentValueUSD: data.simulation.totalValueUSD,
-            totalCurrentValue: data.simulation.totalValue,
-            totalReturn: data.simulation.totalReturn
-          } : null)
+          setSelectedSim((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  currentDate: data.simulation.currentDate,
+                  currentCashBRL: data.simulation.currentCashBRL,
+                  currentCashUSD: data.simulation.currentCashUSD,
+                  currentValueBRL: data.simulation.totalValueBRL,
+                  currentValueUSD: data.simulation.totalValueUSD,
+                  totalCurrentValue: data.simulation.totalValue,
+                  totalReturn: data.simulation.totalReturn,
+                }
+              : null
+          )
         }
 
         await fetchSimulations(true)
@@ -157,86 +209,100 @@ export default function SimulatorPage() {
         await fetchPositions() // Atualizar posições após avanço no tempo
       }
     } catch (error) {
-      console.error('Error advancing simulation:', error)
+      console.error("Error advancing simulation:", error)
     } finally {
       setAdvancing(false)
     }
   }
 
-  const fetchAssets = async () => {
+  const fetchAssets = useCallback(async () => {
     if (!selectedSim) return
 
     setLoadingAssets(true)
     try {
       // Buscar ativos BRL e USD usando a data da simulação
       const simulationDate = selectedSim.currentDate
-      console.log('📊 Buscando oportunidades para data:', simulationDate)
+      console.log("📊 Buscando oportunidades para data:", simulationDate)
 
       const [brlResponse, usdResponse] = await Promise.all([
-        fetch(`/api/opportunities?currency=BRL&limit=50&simulationDate=${simulationDate}`),
-        fetch(`/api/opportunities?currency=USD&limit=50&simulationDate=${simulationDate}`)
+        fetch(
+          `/api/opportunities?currency=BRL&limit=50&simulationDate=${simulationDate}`
+        ),
+        fetch(
+          `/api/opportunities?currency=USD&limit=50&simulationDate=${simulationDate}`
+        ),
       ])
 
-      console.log('📊 Response status - BRL:', brlResponse.status, 'USD:', usdResponse.status)
+      console.log(
+        "📊 Response status - BRL:",
+        brlResponse.status,
+        "USD:",
+        usdResponse.status
+      )
 
       const brlData = await brlResponse.json()
       const usdData = await usdResponse.json()
 
-      console.log('📊 BRL Data:', brlData)
-      console.log('📊 USD Data:', usdData)
+      console.log("📊 BRL Data:", brlData)
+      console.log("📊 USD Data:", usdData)
 
       const allAssets = [
         ...(brlData.opportunities || []),
-        ...(usdData.opportunities || [])
+        ...(usdData.opportunities || []),
       ]
 
-      console.log('📊 Total assets found:', allAssets.length)
+      console.log("📊 Total assets found:", allAssets.length)
 
       // Ordenar por proximidade da mínima (melhor oportunidade primeiro)
       const sortedAssets = allAssets.sort((a, b) => a.proximity - b.proximity)
 
       setAssets(sortedAssets)
     } catch (error) {
-      console.error('Error fetching assets:', error)
+      console.error("Error fetching assets:", error)
     } finally {
       setLoadingAssets(false)
     }
-  }
+  }, [selectedSim])
 
-  const fetchPositions = async () => {
+  const fetchPositions = useCallback(async () => {
     if (!selectedSim) return
 
     setLoadingPositions(true)
     try {
-      const response = await fetch(`/api/simulations/${selectedSim.id}/positions`)
+      const response = await fetch(
+        `/api/simulations/${selectedSim.id}/positions`
+      )
       const data = await response.json()
 
       if (response.ok) {
         setPositions(data.positions || [])
         setPositionsSummary(data.summary || null)
-        console.log('💰 Saldos em caixa:', data.summary)
+        console.log("💰 Saldos em caixa:", data.summary)
       }
     } catch (error) {
-      console.error('Error fetching positions:', error)
+      console.error("Error fetching positions:", error)
     } finally {
       setLoadingPositions(false)
     }
-  }
+  }, [selectedSim])
 
   const handleDeleteSimulation = async () => {
     if (!deleteConfirmation.simulationId) return
 
     try {
-      const response = await fetch(`/api/simulations/${deleteConfirmation.simulationId}`, {
-        method: 'DELETE'
-      })
+      const response = await fetch(
+        `/api/simulations/${deleteConfirmation.simulationId}`,
+        {
+          method: "DELETE",
+        }
+      )
 
       if (response.ok) {
-        console.log('🗑️ Simulação excluída:', deleteConfirmation.simulationName)
+        console.log("🗑️ Simulação excluída:", deleteConfirmation.simulationName)
 
         // If the deleted simulation was selected, clear selection completely
         if (selectedSim?.id === deleteConfirmation.simulationId) {
-          console.log('🔄 Limpando simulação selecionada após exclusão')
+          console.log("🔄 Limpando simulação selecionada após exclusão")
           setSelectedSim(null)
           setAssets([])
           setPositions([])
@@ -248,12 +314,16 @@ export default function SimulatorPage() {
         // Refresh simulations list
         await fetchSimulations(true)
       } else {
-        console.error('Erro ao excluir simulação')
+        console.error("Erro ao excluir simulação")
       }
     } catch (error) {
-      console.error('Erro ao excluir simulação:', error)
+      console.error("Erro ao excluir simulação:", error)
     } finally {
-      setDeleteConfirmation({ isOpen: false, simulationId: null, simulationName: null })
+      setDeleteConfirmation({
+        isOpen: false,
+        simulationId: null,
+        simulationName: null,
+      })
     }
   }
 
@@ -264,21 +334,32 @@ export default function SimulatorPage() {
       // If no session, stop loading state to show the appropriate UI
       setLoading(false)
     }
-  }, [session])
+  }, [session, fetchSimulations])
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered with selectedSim:', selectedSim?.id, selectedSim?.currentDate)
+    console.log(
+      "🔄 useEffect triggered with selectedSim:",
+      selectedSim?.id,
+      selectedSim?.currentDate
+    )
     if (selectedSim && selectedSim.id && selectedSim.currentDate) {
-      console.log('🔄 Carregando dados para simulação:', selectedSim.name, selectedSim.currentDate)
+      console.log(
+        "🔄 Carregando dados para simulação:",
+        selectedSim.name,
+        selectedSim.currentDate
+      )
       fetchAssets()
       fetchPositions()
     } else if (selectedSim) {
-      console.warn('⚠️ Simulação selecionada com dados incompletos:', selectedSim)
+      console.warn(
+        "⚠️ Simulação selecionada com dados incompletos:",
+        selectedSim
+      )
       setSelectedSim(null) // Limpar simulação inválida
     } else {
-      console.log('🔄 Nenhuma simulação selecionada')
+      console.log("🔄 Nenhuma simulação selecionada")
     }
-  }, [selectedSim?.id, selectedSim?.currentDate]) // Only depend on the IDs, not the functions
+  }, [selectedSim?.id, selectedSim?.currentDate, fetchAssets, fetchPositions]) // Remove setSelectedSim as it doesn't need to be a dependency
 
   if (loading) {
     return (
@@ -297,9 +378,12 @@ export default function SimulatorPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4 max-w-md">
             <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h3 className="text-lg font-medium">Nenhuma simulação encontrada</h3>
+            <h3 className="text-lg font-medium">
+              Nenhuma simulação encontrada
+            </h3>
             <p className="text-muted-foreground">
-              Crie sua primeira simulação para testar estratégias de investimento com dados históricos.
+              Crie sua primeira simulação para testar estratégias de
+              investimento com dados históricos.
             </p>
             <Button onClick={() => setNewSimulationModal(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -346,7 +430,11 @@ export default function SimulatorPage() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => fetchSimulations(true)} disabled={refreshing}>
+          <Button
+            variant="outline"
+            onClick={() => fetchSimulations(true)}
+            disabled={refreshing}
+          >
             {refreshing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -399,19 +487,33 @@ export default function SimulatorPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold", getPercentageColor(selectedSim?.totalReturn || 0))}>
+            <div
+              className={cn(
+                "text-2xl font-bold",
+                getPercentageColor(selectedSim?.totalReturn || 0)
+              )}
+            >
               {formatPercentage(selectedSim?.totalReturn || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {(selectedSim?.totalCurrentValue || 0) > (selectedSim?.totalInitialValue || 0) ? "+" : ""}
-              {formatCurrency((selectedSim?.totalCurrentValue || 0) - (selectedSim?.totalInitialValue || 0), "USD")}
+              {(selectedSim?.totalCurrentValue || 0) >
+              (selectedSim?.totalInitialValue || 0)
+                ? "+"
+                : ""}
+              {formatCurrency(
+                (selectedSim?.totalCurrentValue || 0) -
+                  (selectedSim?.totalInitialValue || 0),
+                "USD"
+              )}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tempo Decorrido</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Tempo Decorrido
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -419,7 +521,9 @@ export default function SimulatorPage() {
               {selectedSim?.monthsElapsed || 0}M
             </div>
             <p className="text-xs text-muted-foreground">
-              {selectedSim?.startDate ? `Desde ${formatDate(selectedSim.startDate)}` : "Nenhuma simulação selecionada"}
+              {selectedSim?.startDate
+                ? `Desde ${formatDate(selectedSim.startDate)}`
+                : "Nenhuma simulação selecionada"}
             </p>
           </CardContent>
         </Card>
@@ -431,15 +535,15 @@ export default function SimulatorPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {selectedSim?.currentDate ? formatDate(selectedSim.currentDate, {
-                month: "short",
-                year: "2-digit",
-                day: "numeric"
-              }) : "Selecione uma simulação"}
+              {selectedSim?.currentDate
+                ? formatDate(selectedSim.currentDate, {
+                    month: "short",
+                    year: "2-digit",
+                    day: "numeric",
+                  })
+                : "Selecione uma simulação"}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Tempo da simulação
-            </p>
+            <p className="text-xs text-muted-foreground">Tempo da simulação</p>
           </CardContent>
         </Card>
 
@@ -449,12 +553,8 @@ export default function SimulatorPage() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {positions.length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Posições ativas
-            </p>
+            <div className="text-2xl font-bold">{positions.length}</div>
+            <p className="text-xs text-muted-foreground">Posições ativas</p>
           </CardContent>
         </Card>
       </div>
@@ -471,50 +571,74 @@ export default function SimulatorPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              onClick={() => advanceTime('day', 1)}
+              onClick={() => advanceTime("day", 1)}
               disabled={advancing || !selectedSim}
             >
-              {advancing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calendar className="mr-2 h-4 w-4" />}
+              {advancing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Calendar className="mr-2 h-4 w-4" />
+              )}
               +1 Dia
             </Button>
             <Button
               variant="outline"
-              onClick={() => advanceTime('week', 1)}
+              onClick={() => advanceTime("week", 1)}
               disabled={advancing || !selectedSim}
             >
-              {advancing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calendar className="mr-2 h-4 w-4" />}
+              {advancing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Calendar className="mr-2 h-4 w-4" />
+              )}
               +1 Semana
             </Button>
             <Button
               variant="outline"
-              onClick={() => advanceTime('month', 1)}
+              onClick={() => advanceTime("month", 1)}
               disabled={advancing || !selectedSim}
             >
-              {advancing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calendar className="mr-2 h-4 w-4" />}
+              {advancing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Calendar className="mr-2 h-4 w-4" />
+              )}
               +1 Mês
             </Button>
             <Button
               variant="outline"
-              onClick={() => advanceTime('month', 3)}
+              onClick={() => advanceTime("month", 3)}
               disabled={advancing || !selectedSim}
             >
-              {advancing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FastForward className="mr-2 h-4 w-4" />}
+              {advancing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FastForward className="mr-2 h-4 w-4" />
+              )}
               +3 Meses
             </Button>
             <Button
               variant="outline"
-              onClick={() => advanceTime('month', 6)}
+              onClick={() => advanceTime("month", 6)}
               disabled={advancing || !selectedSim}
             >
-              {advancing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FastForward className="mr-2 h-4 w-4" />}
+              {advancing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FastForward className="mr-2 h-4 w-4" />
+              )}
               +6 Meses
             </Button>
             <Button
               variant="outline"
-              onClick={() => advanceTime('year', 1)}
+              onClick={() => advanceTime("year", 1)}
               disabled={advancing || !selectedSim}
             >
-              {advancing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FastForward className="mr-2 h-4 w-4" />}
+              {advancing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FastForward className="mr-2 h-4 w-4" />
+              )}
               +1 Ano
             </Button>
           </div>
@@ -540,15 +664,25 @@ export default function SimulatorPage() {
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">🇧🇷 Real (BRL):</span>
+                    <span className="text-sm text-muted-foreground">
+                      🇧🇷 Real (BRL):
+                    </span>
                     <span className="font-mono font-medium">
-                      {formatCurrency(positionsSummary.brl?.cashBalance || 0, "BRL")}
+                      {formatCurrency(
+                        positionsSummary.brl?.cashBalance || 0,
+                        "BRL"
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">🇺🇸 Dólar (USD):</span>
+                    <span className="text-sm text-muted-foreground">
+                      🇺🇸 Dólar (USD):
+                    </span>
                     <span className="font-mono font-medium">
-                      {formatCurrency(positionsSummary.usd?.cashBalance || 0, "USD")}
+                      {formatCurrency(
+                        positionsSummary.usd?.cashBalance || 0,
+                        "USD"
+                      )}
                     </span>
                   </div>
                 </div>
@@ -564,62 +698,96 @@ export default function SimulatorPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p>Nenhuma posição ativa</p>
-                <p className="text-sm">Compre alguns ativos para começar a investir</p>
+                <p className="text-sm">
+                  Compre alguns ativos para começar a investir
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {/* Mobile View */}
                 <div className="md:hidden space-y-3">
                   {positions.map((position) => (
-                    <div key={position.ticker} className="p-3 rounded-lg border">
+                    <div
+                      key={position.ticker}
+                      className="p-3 rounded-lg border"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => setChartModal({
-                              isOpen: true,
-                              asset: {
-                                ticker: position.ticker,
-                                name: position.name,
-                                currency: position.currency
-                              }
-                            })}
+                            onClick={() =>
+                              setChartModal({
+                                isOpen: true,
+                                asset: {
+                                  ticker: position.ticker,
+                                  name: position.name,
+                                  currency: position.currency,
+                                },
+                              })
+                            }
                             className="font-semibold hover:text-primary hover:underline transition-colors"
                           >
                             {position.ticker}
                           </button>
-                          <Badge variant={position.currency === "BRL" ? "default" : "outline"}>
+                          <Badge
+                            variant={
+                              position.currency === "BRL"
+                                ? "default"
+                                : "outline"
+                            }
+                          >
                             {position.currency}
                           </Badge>
                         </div>
-                        <div className={cn("font-medium", getPercentageColor(position.profitLossPercent))}>
+                        <div
+                          className={cn(
+                            "font-medium",
+                            getPercentageColor(position.profitLossPercent)
+                          )}
+                        >
                           {formatPercentage(position.profitLossPercent)}
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <span className="text-muted-foreground">Qtd:</span> {position.quantity}
+                          <span className="text-muted-foreground">Qtd:</span>{" "}
+                          {position.quantity}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">P. Médio:</span> {formatCurrency(position.avgPrice, position.currency)}
+                          <span className="text-muted-foreground">
+                            P. Médio:
+                          </span>{" "}
+                          {formatCurrency(position.avgPrice, position.currency)}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">P. Atual:</span> {formatCurrency(position.currentPrice, position.currency)}
+                          <span className="text-muted-foreground">
+                            P. Atual:
+                          </span>{" "}
+                          {formatCurrency(
+                            position.currentPrice,
+                            position.currency
+                          )}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Valor:</span> {formatCurrency(position.currentValue, position.currency)}
+                          <span className="text-muted-foreground">Valor:</span>{" "}
+                          {formatCurrency(
+                            position.currentValue,
+                            position.currency
+                          )}
                         </div>
                       </div>
 
                       <div className="flex gap-2 mt-3">
                         <Button
                           size="sm"
-                          onClick={() => setTransactionModal({
-                            isOpen: true,
-                            mode: "buy",
-                            simulationId: selectedSim.id,
-                            initialTicker: position.ticker
-                          })}
+                          onClick={() =>
+                            setTransactionModal({
+                              isOpen: true,
+                              mode: "buy",
+                              simulationId: selectedSim.id,
+                              initialTicker: position.ticker,
+                            })
+                          }
                         >
                           <Plus className="h-4 w-4 mr-1" />
                           Comprar
@@ -627,12 +795,14 @@ export default function SimulatorPage() {
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => setTransactionModal({
-                            isOpen: true,
-                            mode: "sell",
-                            simulationId: selectedSim.id,
-                            initialTicker: position.ticker
-                          })}
+                          onClick={() =>
+                            setTransactionModal({
+                              isOpen: true,
+                              mode: "sell",
+                              simulationId: selectedSim.id,
+                              initialTicker: position.ticker,
+                            })
+                          }
                         >
                           <TrendingDown className="h-4 w-4 mr-1" />
                           Vender
@@ -641,7 +811,10 @@ export default function SimulatorPage() {
                           size="sm"
                           variant="destructive"
                           onClick={() => {
-                            console.log('❌ Encerrar posição clicked for:', position.ticker)
+                            console.log(
+                              "❌ Encerrar posição clicked for:",
+                              position.ticker
+                            )
                             setTransactionModal({
                               isOpen: true,
                               mode: "close",
@@ -649,8 +822,8 @@ export default function SimulatorPage() {
                               initialTicker: position.ticker,
                               currentPosition: {
                                 quantity: position.quantity,
-                                ticker: position.ticker
-                              }
+                                ticker: position.ticker,
+                              },
                             })
                           }}
                         >
@@ -671,26 +844,35 @@ export default function SimulatorPage() {
                         <th className="text-right p-3 font-medium">Qtd</th>
                         <th className="text-right p-3 font-medium">P. Médio</th>
                         <th className="text-right p-3 font-medium">P. Atual</th>
-                        <th className="text-right p-3 font-medium">Valor Atual</th>
-                        <th className="text-right p-3 font-medium">Resultado</th>
+                        <th className="text-right p-3 font-medium">
+                          Valor Atual
+                        </th>
+                        <th className="text-right p-3 font-medium">
+                          Resultado
+                        </th>
                         <th className="text-center p-3 font-medium">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       {positions.map((position) => (
-                        <tr key={position.ticker} className="border-b hover:bg-accent/50">
+                        <tr
+                          key={position.ticker}
+                          className="border-b hover:bg-accent/50"
+                        >
                           <td className="p-3">
                             <div className="flex items-center gap-2">
                               <div>
                                 <button
-                                  onClick={() => setChartModal({
-                                    isOpen: true,
-                                    asset: {
-                                      ticker: position.ticker,
-                                      name: position.name,
-                                      currency: position.currency
-                                    }
-                                  })}
+                                  onClick={() =>
+                                    setChartModal({
+                                      isOpen: true,
+                                      asset: {
+                                        ticker: position.ticker,
+                                        name: position.name,
+                                        currency: position.currency,
+                                      },
+                                    })
+                                  }
                                   className="font-semibold hover:text-primary hover:underline transition-colors text-left"
                                 >
                                   {position.ticker}
@@ -699,49 +881,80 @@ export default function SimulatorPage() {
                                   {position.name}
                                 </div>
                               </div>
-                              <Badge variant={position.currency === "BRL" ? "default" : "outline"}>
+                              <Badge
+                                variant={
+                                  position.currency === "BRL"
+                                    ? "default"
+                                    : "outline"
+                                }
+                              >
                                 {position.currency}
                               </Badge>
                             </div>
                           </td>
-                          <td className="text-right p-3">{position.quantity}</td>
-                          <td className="text-right p-3 font-mono">
-                            {formatCurrency(position.avgPrice, position.currency)}
+                          <td className="text-right p-3">
+                            {position.quantity}
                           </td>
                           <td className="text-right p-3 font-mono">
-                            {formatCurrency(position.currentPrice, position.currency)}
+                            {formatCurrency(
+                              position.avgPrice,
+                              position.currency
+                            )}
+                          </td>
+                          <td className="text-right p-3 font-mono">
+                            {formatCurrency(
+                              position.currentPrice,
+                              position.currency
+                            )}
                           </td>
                           <td className="text-right p-3 font-mono font-bold">
-                            {formatCurrency(position.currentValue, position.currency)}
+                            {formatCurrency(
+                              position.currentValue,
+                              position.currency
+                            )}
                           </td>
-                          <td className={cn("text-right p-3 font-mono", getPercentageColor(position.profitLossPercent))}>
-                            <div>{formatPercentage(position.profitLossPercent)}</div>
+                          <td
+                            className={cn(
+                              "text-right p-3 font-mono",
+                              getPercentageColor(position.profitLossPercent)
+                            )}
+                          >
+                            <div>
+                              {formatPercentage(position.profitLossPercent)}
+                            </div>
                             <div className="text-xs">
-                              {formatCurrency(position.profitLoss, position.currency)}
+                              {formatCurrency(
+                                position.profitLoss,
+                                position.currency
+                              )}
                             </div>
                           </td>
                           <td className="text-center p-3">
                             <div className="flex justify-center gap-1">
                               <Button
                                 size="sm"
-                                onClick={() => setTransactionModal({
-                                  isOpen: true,
-                                  mode: "buy",
-                                  simulationId: selectedSim.id,
-                                  initialTicker: position.ticker
-                                })}
+                                onClick={() =>
+                                  setTransactionModal({
+                                    isOpen: true,
+                                    mode: "buy",
+                                    simulationId: selectedSim.id,
+                                    initialTicker: position.ticker,
+                                  })
+                                }
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                onClick={() => setTransactionModal({
-                                  isOpen: true,
-                                  mode: "sell",
-                                  simulationId: selectedSim.id,
-                                  initialTicker: position.ticker
-                                })}
+                                onClick={() =>
+                                  setTransactionModal({
+                                    isOpen: true,
+                                    mode: "sell",
+                                    simulationId: selectedSim.id,
+                                    initialTicker: position.ticker,
+                                  })
+                                }
                               >
                                 <TrendingDown className="h-3 w-3" />
                               </Button>
@@ -749,7 +962,10 @@ export default function SimulatorPage() {
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => {
-                                  console.log('❌ Encerrar posição clicked for:', position.ticker)
+                                  console.log(
+                                    "❌ Encerrar posição clicked for:",
+                                    position.ticker
+                                  )
                                   setTransactionModal({
                                     isOpen: true,
                                     mode: "close",
@@ -757,8 +973,8 @@ export default function SimulatorPage() {
                                     initialTicker: position.ticker,
                                     currentPosition: {
                                       quantity: position.quantity,
-                                      ticker: position.ticker
-                                    }
+                                      ticker: position.ticker,
+                                    },
                                   })
                                 }}
                               >
@@ -783,7 +999,8 @@ export default function SimulatorPage() {
           <CardHeader>
             <CardTitle>Oportunidades de Investimento</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Ativos ordenados por proximidade da mínima histórica (melhor oportunidade primeiro)
+              Ativos ordenados por proximidade da mínima histórica (melhor
+              oportunidade primeiro)
             </p>
           </CardHeader>
           <CardContent>
@@ -796,7 +1013,8 @@ export default function SimulatorPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <p>Nenhum ativo encontrado</p>
                 <p className="text-xs mt-2">
-                  Debug: selectedSim: {selectedSim?.id}, loadingAssets: {loadingAssets.toString()}
+                  Debug: selectedSim: {selectedSim?.id}, loadingAssets:{" "}
+                  {loadingAssets.toString()}
                 </p>
               </div>
             ) : (
@@ -804,13 +1022,22 @@ export default function SimulatorPage() {
                 {/* Mobile View */}
                 <div className="md:hidden space-y-3 overflow-hidden">
                   {assets.slice(0, 20).map((asset) => (
-                    <div key={asset.ticker} className="p-3 rounded-lg border hover:bg-accent/50 transition-colors w-full">
+                    <div
+                      key={asset.ticker}
+                      className="p-3 rounded-lg border hover:bg-accent/50 transition-colors w-full"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold">{asset.ticker}</h3>
                           <Badge
-                            variant={asset.currency === "BRL" ? "default" : "outline"}
-                            className={asset.currency === "USD" ? "border-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950" : ""}
+                            variant={
+                              asset.currency === "BRL" ? "default" : "outline"
+                            }
+                            className={
+                              asset.currency === "USD"
+                                ? "border-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950"
+                                : ""
+                            }
                           >
                             {asset.currency}
                           </Badge>
@@ -824,14 +1051,18 @@ export default function SimulatorPage() {
 
                       <button
                         onClick={() => {
-                          console.log('📊 Chart link clicked for asset:', asset.ticker, asset.name)
+                          console.log(
+                            "📊 Chart link clicked for asset:",
+                            asset.ticker,
+                            asset.name
+                          )
                           setChartModal({
                             isOpen: true,
                             asset: {
                               ticker: asset.ticker,
                               name: asset.name,
-                              currency: asset.currency
-                            }
+                              currency: asset.currency,
+                            },
                           })
                         }}
                         className="text-sm text-muted-foreground hover:text-primary hover:underline transition-colors text-left mb-2 block truncate w-full"
@@ -843,24 +1074,38 @@ export default function SimulatorPage() {
                         <div>
                           <div className="flex items-center gap-1">
                             <Target className="h-3 w-3" />
-                            <span className={cn(
-                              "font-medium",
-                              asset.proximity <= 10 ? "text-green-600" :
-                              asset.proximity <= 25 ? "text-yellow-600" : "text-red-600"
-                            )}>
+                            <span
+                              className={cn(
+                                "font-medium",
+                                asset.proximity <= 10
+                                  ? "text-green-600"
+                                  : asset.proximity <= 25
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                              )}
+                            >
                               +{formatPercentage(asset.proximity)}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground">Prox. Mínima</p>
+                          <p className="text-xs text-muted-foreground">
+                            Prox. Mínima
+                          </p>
                         </div>
                         <div>
                           <div className="flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
-                            <span className={cn("font-medium", getPercentageColor(asset.potential))}>
+                            <span
+                              className={cn(
+                                "font-medium",
+                                getPercentageColor(asset.potential)
+                              )}
+                            >
                               +{formatPercentage(asset.potential)}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground">Potencial</p>
+                          <p className="text-xs text-muted-foreground">
+                            Potencial
+                          </p>
                         </div>
                       </div>
 
@@ -869,12 +1114,16 @@ export default function SimulatorPage() {
                           size="sm"
                           className="flex-1"
                           onClick={() => {
-                            console.log('🛒 Buy button clicked for asset:', asset.ticker, asset.name)
+                            console.log(
+                              "🛒 Buy button clicked for asset:",
+                              asset.ticker,
+                              asset.name
+                            )
                             setTransactionModal({
                               isOpen: true,
                               mode: "buy",
                               simulationId: selectedSim.id,
-                              initialTicker: asset.ticker
+                              initialTicker: asset.ticker,
                             })
                           }}
                         >
@@ -885,12 +1134,14 @@ export default function SimulatorPage() {
                           size="sm"
                           variant="outline"
                           className="flex-1"
-                          onClick={() => setTransactionModal({
-                            isOpen: true,
-                            mode: "sell",
-                            simulationId: selectedSim.id,
-                            initialTicker: asset.ticker
-                          })}
+                          onClick={() =>
+                            setTransactionModal({
+                              isOpen: true,
+                              mode: "sell",
+                              simulationId: selectedSim.id,
+                              initialTicker: asset.ticker,
+                            })
+                          }
                         >
                           <TrendingDown className="h-4 w-4 mr-1" />
                           Vender
@@ -903,28 +1154,39 @@ export default function SimulatorPage() {
                 {/* Desktop View */}
                 <div className="hidden md:block space-y-3">
                   {assets.slice(0, 20).map((asset) => (
-                    <div key={asset.ticker} className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                    <div
+                      key={asset.ticker}
+                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <div>
                             <h3 className="font-semibold">{asset.ticker}</h3>
                             <button
-                              onClick={() => setChartModal({
-                                isOpen: true,
-                                asset: {
-                                  ticker: asset.ticker,
-                                  name: asset.name,
-                                  currency: asset.currency
-                                }
-                              })}
+                              onClick={() =>
+                                setChartModal({
+                                  isOpen: true,
+                                  asset: {
+                                    ticker: asset.ticker,
+                                    name: asset.name,
+                                    currency: asset.currency,
+                                  },
+                                })
+                              }
                               className="text-sm text-muted-foreground truncate max-w-[200px] hover:text-primary hover:underline transition-colors text-left"
                             >
                               {asset.name}
                             </button>
                           </div>
                           <Badge
-                            variant={asset.currency === "BRL" ? "default" : "outline"}
-                            className={asset.currency === "USD" ? "border-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950" : ""}
+                            variant={
+                              asset.currency === "BRL" ? "default" : "outline"
+                            }
+                            className={
+                              asset.currency === "USD"
+                                ? "border-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950"
+                                : ""
+                            }
                           >
                             {asset.currency}
                           </Badge>
@@ -944,11 +1206,16 @@ export default function SimulatorPage() {
                         <div className="min-w-[90px]">
                           <div className="flex items-center gap-1">
                             <Target className="h-3 w-3" />
-                            <span className={cn(
-                              "font-medium text-sm",
-                              asset.proximity <= 10 ? "text-green-600" :
-                              asset.proximity <= 25 ? "text-yellow-600" : "text-red-600"
-                            )}>
+                            <span
+                              className={cn(
+                                "font-medium text-sm",
+                                asset.proximity <= 10
+                                  ? "text-green-600"
+                                  : asset.proximity <= 25
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                              )}
+                            >
                               +{formatPercentage(asset.proximity)}
                             </span>
                           </div>
@@ -960,10 +1227,12 @@ export default function SimulatorPage() {
                         <div className="min-w-[90px]">
                           <div className="flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
-                            <span className={cn(
-                              "font-medium text-sm",
-                              getPercentageColor(asset.potential)
-                            )}>
+                            <span
+                              className={cn(
+                                "font-medium text-sm",
+                                getPercentageColor(asset.potential)
+                              )}
+                            >
                               +{formatPercentage(asset.potential)}
                             </span>
                           </div>
@@ -975,12 +1244,14 @@ export default function SimulatorPage() {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            onClick={() => setTransactionModal({
-                              isOpen: true,
-                              mode: "buy",
-                              simulationId: selectedSim.id,
-                              initialTicker: asset.ticker
-                            })}
+                            onClick={() =>
+                              setTransactionModal({
+                                isOpen: true,
+                                mode: "buy",
+                                simulationId: selectedSim.id,
+                                initialTicker: asset.ticker,
+                              })
+                            }
                           >
                             <ShoppingCart className="h-4 w-4 mr-1" />
                             Comprar
@@ -988,12 +1259,14 @@ export default function SimulatorPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setTransactionModal({
-                              isOpen: true,
-                              mode: "sell",
-                              simulationId: selectedSim.id,
-                              initialTicker: asset.ticker
-                            })}
+                            onClick={() =>
+                              setTransactionModal({
+                                isOpen: true,
+                                mode: "sell",
+                                simulationId: selectedSim.id,
+                                initialTicker: asset.ticker,
+                              })
+                            }
                           >
                             <TrendingDown className="h-4 w-4 mr-1" />
                             Vender
@@ -1023,7 +1296,9 @@ export default function SimulatorPage() {
             {simulations.map((simulation) => (
               <Card
                 key={simulation.id}
-                variant={selectedSim?.id === simulation.id ? "elevated" : "outline"}
+                variant={
+                  selectedSim?.id === simulation.id ? "elevated" : "outline"
+                }
                 className={cn(
                   "cursor-pointer transition-colors",
                   selectedSim?.id === simulation.id && "ring-2 ring-primary"
@@ -1060,11 +1335,15 @@ export default function SimulatorPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Valor:</span>
-                      <div>{formatCurrency(simulation.totalCurrentValue, "USD")}</div>
+                      <div>
+                        {formatCurrency(simulation.totalCurrentValue, "USD")}
+                      </div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Retorno:</span>
-                      <div className={getPercentageColor(simulation.totalReturn)}>
+                      <div
+                        className={getPercentageColor(simulation.totalReturn)}
+                      >
                         {formatPercentage(simulation.totalReturn)}
                       </div>
                     </div>
@@ -1111,18 +1390,24 @@ export default function SimulatorPage() {
                         </span>
                       )}
                     </td>
-                    <td className="text-right p-3">{formatDate(simulation.startDate)}</td>
-                    <td className="text-right p-3">{simulation.monthsElapsed}M</td>
+                    <td className="text-right p-3">
+                      {formatDate(simulation.startDate)}
+                    </td>
+                    <td className="text-right p-3">
+                      {simulation.monthsElapsed}M
+                    </td>
                     <td className="text-right p-3">
                       {formatCurrency(simulation.totalInitialValue, "USD")}
                     </td>
                     <td className="text-right p-3 font-medium">
                       {formatCurrency(simulation.totalCurrentValue, "USD")}
                     </td>
-                    <td className={cn(
-                      "text-right p-3 font-medium",
-                      getPercentageColor(simulation.totalReturn)
-                    )}>
+                    <td
+                      className={cn(
+                        "text-right p-3 font-medium",
+                        getPercentageColor(simulation.totalReturn)
+                      )}
+                    >
                       {formatPercentage(simulation.totalReturn)}
                     </td>
                     <td className="text-center p-3">
@@ -1138,11 +1423,14 @@ export default function SimulatorPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            console.log('🗑️ Delete button clicked for simulation:', simulation.name)
+                            console.log(
+                              "🗑️ Delete button clicked for simulation:",
+                              simulation.name
+                            )
                             setDeleteConfirmation({
                               isOpen: true,
                               simulationId: simulation.id,
-                              simulationName: simulation.name
+                              simulationName: simulation.name,
                             })
                           }}
                         >
@@ -1161,7 +1449,14 @@ export default function SimulatorPage() {
 
       {/* Modals */}
       {newSimulationModal && (
-        <Suspense fallback={<ModalSkeleton isOpen={newSimulationModal} title="Carregando nova simulação..." />}>
+        <Suspense
+          fallback={
+            <ModalSkeleton
+              isOpen={newSimulationModal}
+              title="Carregando nova simulação..."
+            />
+          }
+        >
           <NewSimulationModal
             isOpen={newSimulationModal}
             onClose={() => setNewSimulationModal(false)}
@@ -1171,12 +1466,21 @@ export default function SimulatorPage() {
       )}
 
       {transactionModal.isOpen && (
-        <Suspense fallback={<ModalSkeleton isOpen={transactionModal.isOpen} title="Carregando transação..." />}>
+        <Suspense
+          fallback={
+            <ModalSkeleton
+              isOpen={transactionModal.isOpen}
+              title="Carregando transação..."
+            />
+          }
+        >
           <TransactionModal
             isOpen={transactionModal.isOpen}
             onClose={() => setTransactionModal({ isOpen: false, mode: "buy" })}
             onSuccess={() => {
-              console.log('✅ Transação realizada com sucesso, atualizando dados...')
+              console.log(
+                "✅ Transação realizada com sucesso, atualizando dados..."
+              )
               fetchSimulations(true)
               if (selectedSim) {
                 fetchAssets()
@@ -1207,7 +1511,14 @@ export default function SimulatorPage() {
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteConfirmation.isOpen}
-        onOpenChange={(open) => !open && setDeleteConfirmation({ isOpen: false, simulationId: null, simulationName: null })}
+        onOpenChange={(open) =>
+          !open &&
+          setDeleteConfirmation({
+            isOpen: false,
+            simulationId: null,
+            simulationName: null,
+          })
+        }
       >
         <DialogContent>
           <DialogHeader>
@@ -1215,23 +1526,28 @@ export default function SimulatorPage() {
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              Tem certeza que deseja excluir a simulação <strong>{deleteConfirmation.simulationName}</strong>?
+              Tem certeza que deseja excluir a simulação{" "}
+              <strong>{deleteConfirmation.simulationName}</strong>?
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Esta ação não pode ser desfeita e todos os dados da simulação serão perdidos.
+              Esta ação não pode ser desfeita e todos os dados da simulação
+              serão perdidos.
             </p>
           </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteConfirmation({ isOpen: false, simulationId: null, simulationName: null })}
+              onClick={() =>
+                setDeleteConfirmation({
+                  isOpen: false,
+                  simulationId: null,
+                  simulationName: null,
+                })
+              }
             >
               Cancelar
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteSimulation}
-            >
+            <Button variant="destructive" onClick={handleDeleteSimulation}>
               <Trash2 className="h-4 w-4 mr-2" />
               Excluir Simulação
             </Button>

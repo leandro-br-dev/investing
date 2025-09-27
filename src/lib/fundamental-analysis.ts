@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma'
-import { Decimal } from '@prisma/client/runtime/library'
+import { prisma } from "@/lib/prisma"
+import { Decimal } from "@prisma/client/runtime/library"
 
 interface FundamentalData {
   ticker: string
@@ -27,9 +27,9 @@ interface AnalysisResult {
   growthScore: number
   dividendScore: number
   overallScore: number
-  recommendation: 'BUY' | 'HOLD' | 'SELL'
+  recommendation: "BUY" | "HOLD" | "SELL"
   targetPrice: number
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+  riskLevel: "LOW" | "MEDIUM" | "HIGH"
   grahamNumber?: number
   peterLynchFairValue?: number
   strengths: string[]
@@ -39,7 +39,6 @@ interface AnalysisResult {
 }
 
 export class FundamentalAnalysisEngine {
-
   /**
    * Realiza análise fundamentalista completa de um ativo
    */
@@ -50,10 +49,10 @@ export class FundamentalAnalysisEngine {
         where: { ticker },
         include: {
           historicalPrices: {
-            orderBy: { date: 'desc' },
-            take: 252 // ~1 ano de dados
-          }
-        }
+            orderBy: { date: "desc" },
+            take: 252, // ~1 ano de dados
+          },
+        },
       })
 
       if (!asset || asset.historicalPrices.length === 0) {
@@ -70,26 +69,36 @@ export class FundamentalAnalysisEngine {
         pb: asset.pb ? Number(asset.pb) : undefined,
         roe: asset.roe ? Number(asset.roe) : undefined,
         roa: asset.roa ? Number(asset.roa) : undefined,
-        dividendYield: asset.dividendYield ? Number(asset.dividendYield) : undefined,
-        debtToEquity: asset.debtToEquity ? Number(asset.debtToEquity) : undefined,
-        currentRatio: asset.currentRatio ? Number(asset.currentRatio) : undefined,
-        priceToSales: asset.priceToSales ? Number(asset.priceToSales) : undefined,
+        dividendYield: asset.dividendYield
+          ? Number(asset.dividendYield)
+          : undefined,
+        debtToEquity: asset.debtToEquity
+          ? Number(asset.debtToEquity)
+          : undefined,
+        currentRatio: asset.currentRatio
+          ? Number(asset.currentRatio)
+          : undefined,
+        priceToSales: asset.priceToSales
+          ? Number(asset.priceToSales)
+          : undefined,
         evEbitda: asset.evEbitda ? Number(asset.evEbitda) : undefined,
         revenue: asset.revenue ? Number(asset.revenue) : undefined,
         netIncome: asset.netIncome ? Number(asset.netIncome) : undefined,
         totalAssets: asset.totalAssets ? Number(asset.totalAssets) : undefined,
         totalEquity: asset.totalEquity ? Number(asset.totalEquity) : undefined,
-        totalDebt: asset.totalDebt ? Number(asset.totalDebt) : undefined
+        totalDebt: asset.totalDebt ? Number(asset.totalDebt) : undefined,
       }
 
       // Realizar análises
-      const analysis = this.performAnalysis(fundamentalData, asset.historicalPrices)
+      const analysis = this.performAnalysis(
+        fundamentalData,
+        asset.historicalPrices
+      )
 
       // Salvar resultado no banco
       await this.saveAnalysis(ticker, analysis, fundamentalData)
 
       return analysis
-
     } catch (error) {
       console.error(`Erro na análise fundamentalista de ${ticker}:`, error)
       return null
@@ -99,19 +108,22 @@ export class FundamentalAnalysisEngine {
   /**
    * Calcula scores e recomendações baseados nos dados fundamentalistas
    */
-  private static performAnalysis(data: FundamentalData, historicalPrices: any[]): AnalysisResult {
+  private static performAnalysis(
+    data: FundamentalData,
+    historicalPrices: unknown[]
+  ): AnalysisResult {
     const scores = {
       valueScore: this.calculateValueScore(data),
       qualityScore: this.calculateQualityScore(data),
       growthScore: this.calculateGrowthScore(data, historicalPrices),
-      dividendScore: this.calculateDividendScore(data)
+      dividendScore: this.calculateDividendScore(data),
     }
 
     const overallScore = Math.round(
-      (scores.valueScore * 0.3 +
-       scores.qualityScore * 0.25 +
-       scores.growthScore * 0.25 +
-       scores.dividendScore * 0.2)
+      scores.valueScore * 0.3 +
+        scores.qualityScore * 0.25 +
+        scores.growthScore * 0.25 +
+        scores.dividendScore * 0.2
     )
 
     const recommendation = this.getRecommendation(overallScore, data)
@@ -133,7 +145,7 @@ export class FundamentalAnalysisEngine {
       riskLevel,
       grahamNumber,
       peterLynchFairValue,
-      ...qualitativeAnalysis
+      ...qualitativeAnalysis,
     }
   }
 
@@ -229,16 +241,22 @@ export class FundamentalAnalysisEngine {
   /**
    * Calcula score de crescimento baseado em dados históricos
    */
-  private static calculateGrowthScore(data: FundamentalData, historicalPrices: any[]): number {
+  private static calculateGrowthScore(
+    data: FundamentalData,
+    historicalPrices: unknown[]
+  ): number {
     let score = 50
 
     if (historicalPrices.length < 52) return score // Precisa de pelo menos 1 ano
 
     // Análise de tendência de preços (últimos 12 meses)
     const currentPrice = Number(historicalPrices[0].close)
-    const priceOneYearAgo = Number(historicalPrices[Math.min(251, historicalPrices.length - 1)].close)
+    const priceOneYearAgo = Number(
+      historicalPrices[Math.min(251, historicalPrices.length - 1)].close
+    )
 
-    const priceGrowth = ((currentPrice - priceOneYearAgo) / priceOneYearAgo) * 100
+    const priceGrowth =
+      ((currentPrice - priceOneYearAgo) / priceOneYearAgo) * 100
 
     if (priceGrowth > 20) score += 15
     else if (priceGrowth > 10) score += 10
@@ -272,8 +290,11 @@ export class FundamentalAnalysisEngine {
   /**
    * Calcula o Número de Graham
    */
-  private static calculateGrahamNumber(data: FundamentalData): number | undefined {
-    if (!data.netIncome || !data.totalEquity || !data.marketCap) return undefined
+  private static calculateGrahamNumber(
+    data: FundamentalData
+  ): number | undefined {
+    if (!data.netIncome || !data.totalEquity || !data.marketCap)
+      return undefined
 
     const eps = data.netIncome / (data.marketCap / data.price) // Lucro por ação estimado
     const bookValuePerShare = data.totalEquity / (data.marketCap / data.price) // Valor patrimonial por ação estimado
@@ -286,7 +307,9 @@ export class FundamentalAnalysisEngine {
   /**
    * Calcula valor justo pelo método Peter Lynch
    */
-  private static calculatePeterLynchFairValue(data: FundamentalData): number | undefined {
+  private static calculatePeterLynchFairValue(
+    data: FundamentalData
+  ): number | undefined {
     if (!data.pe || !data.dividendYield) return undefined
 
     // Peter Lynch: PEG ratio ideal é 1.0
@@ -306,16 +329,21 @@ export class FundamentalAnalysisEngine {
   /**
    * Determina recomendação baseada no score geral
    */
-  private static getRecommendation(overallScore: number, data: FundamentalData): 'BUY' | 'HOLD' | 'SELL' {
-    if (overallScore >= 75) return 'BUY'
-    if (overallScore >= 60) return 'HOLD'
-    return 'SELL'
+  private static getRecommendation(
+    overallScore: number,
+    data: FundamentalData
+  ): "BUY" | "HOLD" | "SELL" {
+    if (overallScore >= 75) return "BUY"
+    if (overallScore >= 60) return "HOLD"
+    return "SELL"
   }
 
   /**
    * Determina nível de risco
    */
-  private static getRiskLevel(data: FundamentalData): 'LOW' | 'MEDIUM' | 'HIGH' {
+  private static getRiskLevel(
+    data: FundamentalData
+  ): "LOW" | "MEDIUM" | "HIGH" {
     let riskFactors = 0
 
     // Fatores de alto risco
@@ -324,9 +352,9 @@ export class FundamentalAnalysisEngine {
     if (data.pe && data.pe > 30) riskFactors++
     if (data.pb && data.pb > 3) riskFactors++
 
-    if (riskFactors >= 3) return 'HIGH'
-    if (riskFactors >= 1) return 'MEDIUM'
-    return 'LOW'
+    if (riskFactors >= 3) return "HIGH"
+    if (riskFactors >= 1) return "MEDIUM"
+    return "LOW"
   }
 
   /**
@@ -334,7 +362,7 @@ export class FundamentalAnalysisEngine {
    */
   private static calculateTargetPrice(data: FundamentalData): number {
     // Método simples: média de diferentes abordagens
-    let targetPrices: number[] = []
+    const targetPrices: number[] = []
 
     // Abordagem por P/E justo (assumir P/E 15 como justo)
     if (data.netIncome && data.marketCap) {
@@ -356,13 +384,18 @@ export class FundamentalAnalysisEngine {
     }
 
     // Retornar média dos preços alvo calculados
-    return targetPrices.reduce((sum, price) => sum + price, 0) / targetPrices.length
+    return (
+      targetPrices.reduce((sum, price) => sum + price, 0) / targetPrices.length
+    )
   }
 
   /**
    * Análise qualitativa
    */
-  private static performQualitativeAnalysis(data: FundamentalData, scores: any): {
+  private static performQualitativeAnalysis(
+    data: FundamentalData,
+    scores: unknown
+  ): {
     strengths: string[]
     weaknesses: string[]
     catalysts: string[]
@@ -374,27 +407,41 @@ export class FundamentalAnalysisEngine {
     const risks: string[] = []
 
     // Análise de pontos fortes
-    if (data.roe && data.roe > 15) strengths.push('Alto retorno sobre patrimônio (ROE > 15%)')
-    if (data.pb && data.pb < 1.5) strengths.push('Ação negociada abaixo do valor patrimonial')
-    if (data.debtToEquity && data.debtToEquity < 0.5) strengths.push('Baixo endividamento')
-    if (data.dividendYield && data.dividendYield > 5) strengths.push('Alto rendimento de dividendos')
-    if (data.currentRatio && data.currentRatio > 2) strengths.push('Excelente liquidez corrente')
+    if (data.roe && data.roe > 15)
+      strengths.push("Alto retorno sobre patrimônio (ROE > 15%)")
+    if (data.pb && data.pb < 1.5)
+      strengths.push("Ação negociada abaixo do valor patrimonial")
+    if (data.debtToEquity && data.debtToEquity < 0.5)
+      strengths.push("Baixo endividamento")
+    if (data.dividendYield && data.dividendYield > 5)
+      strengths.push("Alto rendimento de dividendos")
+    if (data.currentRatio && data.currentRatio > 2)
+      strengths.push("Excelente liquidez corrente")
 
     // Análise de pontos fracos
-    if (data.pe && data.pe > 25) weaknesses.push('P/E elevado indica possível sobrevalorização')
-    if (data.debtToEquity && data.debtToEquity > 1) weaknesses.push('Alto endividamento')
-    if (data.roe && data.roe < 10) weaknesses.push('Baixo retorno sobre patrimônio')
-    if (data.currentRatio && data.currentRatio < 1.2) weaknesses.push('Liquidez corrente baixa')
+    if (data.pe && data.pe > 25)
+      weaknesses.push("P/E elevado indica possível sobrevalorização")
+    if (data.debtToEquity && data.debtToEquity > 1)
+      weaknesses.push("Alto endividamento")
+    if (data.roe && data.roe < 10)
+      weaknesses.push("Baixo retorno sobre patrimônio")
+    if (data.currentRatio && data.currentRatio < 1.2)
+      weaknesses.push("Liquidez corrente baixa")
 
     // Catalisadores potenciais
-    if (scores.valueScore > 70) catalysts.push('Ação subvalorizada com potencial de rerating')
-    if (data.dividendYield && data.dividendYield > 6) catalysts.push('Alto dividend yield atrai investidores de renda')
-    if (scores.qualityScore > 70) catalysts.push('Empresa de alta qualidade com fundamentos sólidos')
+    if (scores.valueScore > 70)
+      catalysts.push("Ação subvalorizada com potencial de rerating")
+    if (data.dividendYield && data.dividendYield > 6)
+      catalysts.push("Alto dividend yield atrai investidores de renda")
+    if (scores.qualityScore > 70)
+      catalysts.push("Empresa de alta qualidade com fundamentos sólidos")
 
     // Riscos identificados
-    if (data.debtToEquity && data.debtToEquity > 1.5) risks.push('Alto endividamento pode limitar crescimento')
-    if (data.pe && data.pe > 30) risks.push('Múltiplos elevados aumentam risco de correção')
-    if (scores.qualityScore < 40) risks.push('Fundamentos fracos da empresa')
+    if (data.debtToEquity && data.debtToEquity > 1.5)
+      risks.push("Alto endividamento pode limitar crescimento")
+    if (data.pe && data.pe > 30)
+      risks.push("Múltiplos elevados aumentam risco de correção")
+    if (scores.qualityScore < 40) risks.push("Fundamentos fracos da empresa")
 
     return { strengths, weaknesses, catalysts, risks }
   }
@@ -402,7 +449,11 @@ export class FundamentalAnalysisEngine {
   /**
    * Salva resultado da análise no banco de dados
    */
-  private static async saveAnalysis(ticker: string, analysis: AnalysisResult, data: FundamentalData) {
+  private static async saveAnalysis(
+    ticker: string,
+    analysis: AnalysisResult,
+    data: FundamentalData
+  ) {
     try {
       await prisma.fundamentalAnalysis.create({
         data: {
@@ -415,21 +466,24 @@ export class FundamentalAnalysisEngine {
           recommendation: analysis.recommendation,
           targetPrice: new Decimal(analysis.targetPrice.toFixed(2)),
           riskLevel: analysis.riskLevel,
-          grahamNumber: analysis.grahamNumber ? new Decimal(analysis.grahamNumber.toFixed(2)) : null,
-          peterLynchFairValue: analysis.peterLynchFairValue ? new Decimal(analysis.peterLynchFairValue.toFixed(2)) : null,
-          strengths: analysis.strengths.join('; '),
-          weaknesses: analysis.weaknesses.join('; '),
-          catalysts: analysis.catalysts.join('; '),
-          risks: analysis.risks.join('; ')
-        }
+          grahamNumber: analysis.grahamNumber
+            ? new Decimal(analysis.grahamNumber.toFixed(2))
+            : null,
+          peterLynchFairValue: analysis.peterLynchFairValue
+            ? new Decimal(analysis.peterLynchFairValue.toFixed(2))
+            : null,
+          strengths: analysis.strengths.join("; "),
+          weaknesses: analysis.weaknesses.join("; "),
+          catalysts: analysis.catalysts.join("; "),
+          risks: analysis.risks.join("; "),
+        },
       })
 
       // Atualizar timestamp da última análise no asset
       await prisma.asset.update({
         where: { ticker },
-        data: { lastFundamentalUpdate: new Date() }
+        data: { lastFundamentalUpdate: new Date() },
       })
-
     } catch (error) {
       console.error(`Erro ao salvar análise de ${ticker}:`, error)
     }
@@ -441,7 +495,7 @@ export class FundamentalAnalysisEngine {
   static async getLatestAnalysis(ticker: string) {
     return await prisma.fundamentalAnalysis.findFirst({
       where: { ticker },
-      orderBy: { analysisDate: 'desc' }
+      orderBy: { analysisDate: "desc" },
     })
   }
 
@@ -449,7 +503,9 @@ export class FundamentalAnalysisEngine {
    * Analisa múltiplos ativos em lote
    */
   static async analyzeBulk(tickers: string[]): Promise<void> {
-    console.log(`🔍 Iniciando análise fundamentalista em lote para ${tickers.length} ativos`)
+    console.log(
+      `🔍 Iniciando análise fundamentalista em lote para ${tickers.length} ativos`
+    )
 
     for (const ticker of tickers) {
       try {
@@ -457,14 +513,15 @@ export class FundamentalAnalysisEngine {
         const result = await this.analyzeAsset(ticker)
 
         if (result) {
-          console.log(`✅ ${ticker}: Score ${result.overallScore}/100 - Recomendação: ${result.recommendation}`)
+          console.log(
+            `✅ ${ticker}: Score ${result.overallScore}/100 - Recomendação: ${result.recommendation}`
+          )
         } else {
           console.log(`❌ ${ticker}: Falha na análise`)
         }
 
         // Pequeno delay para não sobrecarregar
-        await new Promise(resolve => setTimeout(resolve, 500))
-
+        await new Promise((resolve) => setTimeout(resolve, 500))
       } catch (error) {
         console.error(`❌ Erro ao analisar ${ticker}:`, error)
       }

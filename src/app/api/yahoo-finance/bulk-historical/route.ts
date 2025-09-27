@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -16,10 +16,12 @@ export async function POST(req: NextRequest) {
     const {
       currency, // 'BRL', 'USD', ou null para todos
       historicalDays = 30,
-      replaceExisting = false
+      replaceExisting = false,
     } = body
 
-    console.log(`🚀 Iniciando captura otimizada em lote - ${historicalDays} dias, moeda: ${currency || 'todas'}`)
+    console.log(
+      `🚀 Iniciando captura otimizada em lote - ${historicalDays} dias, moeda: ${currency || "todas"}`
+    )
 
     const startTime = new Date().toISOString()
 
@@ -31,15 +33,15 @@ export async function POST(req: NextRequest) {
         ticker: true,
         name: true,
         currency: true,
-        market: true
-      }
+        market: true,
+      },
     })
 
     if (assets.length === 0) {
       return NextResponse.json({
         success: false,
         error: "No assets found",
-        filter: { currency }
+        filter: { currency },
       })
     }
 
@@ -54,33 +56,43 @@ export async function POST(req: NextRequest) {
     }
 
     // Preparar lista de tickers para Yahoo Finance
-    const yahooTickers = assets.map(asset => convertTickerForYahoo(asset.ticker))
+    const yahooTickers = assets.map((asset) =>
+      convertTickerForYahoo(asset.ticker)
+    )
     const tickerMap = new Map()
     assets.forEach((asset, index) => {
       tickerMap.set(yahooTickers[index], asset.ticker)
     })
 
-    console.log(`📡 Tickers para Yahoo Finance:`, yahooTickers.slice(0, 5), '...')
+    console.log(
+      `📡 Tickers para Yahoo Finance:`,
+      yahooTickers.slice(0, 5),
+      "..."
+    )
 
     // Definir período
     const endDate = new Date()
-    const startDate = new Date(Date.now() - historicalDays * 24 * 60 * 60 * 1000)
+    const startDate = new Date(
+      Date.now() - historicalDays * 24 * 60 * 60 * 1000
+    )
 
-    console.log(`📅 Período: ${startDate.toISOString().split('T')[0]} até ${endDate.toISOString().split('T')[0]}`)
+    console.log(
+      `📅 Período: ${startDate.toISOString().split("T")[0]} até ${endDate.toISOString().split("T")[0]}`
+    )
 
-    let results: {
-      successful: any[]
-      failed: any[]
+    const results: {
+      successful: unknown[]
+      failed: unknown[]
       totalRecords: number
     } = {
-      successful: [] as any[],
-      failed: [] as any[],
-      totalRecords: 0
+      successful: [] as unknown[],
+      failed: [] as unknown[],
+      totalRecords: 0,
     }
 
     try {
       // TÉCNICA OTIMIZADA BASEADA NO PYTHON: Processar em lotes menores mas de forma mais eficiente
-      console.log('🔥 Aplicando técnica otimizada inspirada no arquivo Python')
+      console.log("🔥 Aplicando técnica otimizada inspirada no arquivo Python")
 
       // Para downloads grandes (20 anos), processar em lotes ainda menores para SQLite
       const batchSize = historicalDays > 3650 ? 2 : 8 // Para 20 anos, usar lotes de apenas 2 ativos
@@ -90,13 +102,15 @@ export async function POST(req: NextRequest) {
         const batchNumber = Math.floor(i / batchSize) + 1
         const totalBatches = Math.ceil(yahooTickers.length / batchSize)
 
-        console.log(`📦 Lote ${batchNumber}/${totalBatches}: processando ${tickerBatch.length} ativos`)
+        console.log(
+          `📦 Lote ${batchNumber}/${totalBatches}: processando ${tickerBatch.length} ativos`
+        )
 
         // Processar este lote em paralelo usando Promise.allSettled para robustez
         const batchResults = await Promise.allSettled(
           tickerBatch.map(async (yahooTicker) => {
             const originalTicker = tickerMap.get(yahooTicker)
-            const asset = assets.find(a => a.ticker === originalTicker)
+            const asset = assets.find((a) => a.ticker === originalTicker)
 
             if (!asset) {
               throw new Error(`Asset não encontrado: ${yahooTicker}`)
@@ -108,7 +122,7 @@ export async function POST(req: NextRequest) {
             const historical = await yahooFinance.historical(yahooTicker, {
               period1: startDate,
               period2: endDate,
-              interval: '1d'
+              interval: "1d",
               // Removido events: {} pois causava erro na biblioteca
             })
 
@@ -119,7 +133,7 @@ export async function POST(req: NextRequest) {
             // Se replaceExisting = true, limpar dados existentes
             if (replaceExisting) {
               await prisma.historicalPrice.deleteMany({
-                where: { ticker: originalTicker }
+                where: { ticker: originalTicker },
               })
               console.log(`  🗑️ Dados antigos de ${originalTicker} removidos`)
             }
@@ -128,112 +142,141 @@ export async function POST(req: NextRequest) {
 
             // OTIMIZAÇÃO MÁXIMA PARA 20 ANOS: Usar estratégia híbrida mais inteligente
             const recordsToInsert: Array<{
-              ticker: string;
-              date: string;
-              open: number;
-              high: number;
-              low: number;
-              close: number;
-            }> = historical.map(record => ({
+              ticker: string
+              date: string
+              open: number
+              high: number
+              low: number
+              close: number
+            }> = historical.map((record) => ({
               ticker: originalTicker,
-              date: record.date.toISOString().split('T')[0],
+              date: record.date.toISOString().split("T")[0],
               open: Number((record.open || 0).toFixed(2)),
               high: Number((record.high || 0).toFixed(2)),
               low: Number((record.low || 0).toFixed(2)),
-              close: Number((record.close || 0).toFixed(2))
+              close: Number((record.close || 0).toFixed(2)),
             }))
 
             if (replaceExisting) {
               // ESTRATÉGIA OTIMIZADA: Usar createMany sempre que possível
               try {
                 await prisma.historicalPrice.createMany({
-                  data: recordsToInsert
+                  data: recordsToInsert,
                 })
                 processed = recordsToInsert.length
-                console.log(`  ✅ ${originalTicker}: ${processed} registros inseridos (createMany)`)
+                console.log(
+                  `  ✅ ${originalTicker}: ${processed} registros inseridos (createMany)`
+                )
               } catch (error) {
-                console.log(`  ⚠️ ${originalTicker}: CreateMany falhou, usando estratégia alternativa`)
+                console.log(
+                  `  ⚠️ ${originalTicker}: CreateMany falhou, usando estratégia alternativa`
+                )
                 // ESTRATÉGIA ALTERNATIVA: Usar transações em lotes menores
                 const smallBatchSize = 25 // Lotes muito pequenos para SQLite
 
-                for (let j = 0; j < recordsToInsert.length; j += smallBatchSize) {
-                  const smallBatch = recordsToInsert.slice(j, j + smallBatchSize)
+                for (
+                  let j = 0;
+                  j < recordsToInsert.length;
+                  j += smallBatchSize
+                ) {
+                  const smallBatch = recordsToInsert.slice(
+                    j,
+                    j + smallBatchSize
+                  )
 
                   try {
-                    await prisma.$transaction(async (tx) => {
-                      for (const record of smallBatch) {
-                        await tx.historicalPrice.upsert({
-                          where: {
-                            ticker_date: {
-                              ticker: record.ticker,
-                              date: record.date
-                            }
-                          },
-                          update: {
-                            open: record.open,
-                            high: record.high,
-                            low: record.low,
-                            close: record.close
-                          },
-                          create: record
-                        })
-                        processed++
+                    await prisma.$transaction(
+                      async (tx) => {
+                        for (const record of smallBatch) {
+                          await tx.historicalPrice.upsert({
+                            where: {
+                              ticker_date: {
+                                ticker: record.ticker,
+                                date: record.date,
+                              },
+                            },
+                            update: {
+                              open: record.open,
+                              high: record.high,
+                              low: record.low,
+                              close: record.close,
+                            },
+                            create: record,
+                          })
+                          processed++
+                        }
+                      },
+                      {
+                        timeout: 30000, // 30 segundos por transação
                       }
-                    }, {
-                      timeout: 30000 // 30 segundos por transação
-                    })
+                    )
 
                     // Log de progresso a cada lote
                     if (j % (smallBatchSize * 10) === 0) {
-                      console.log(`    📈 ${originalTicker}: ${processed}/${recordsToInsert.length} registros processados...`)
+                      console.log(
+                        `    📈 ${originalTicker}: ${processed}/${recordsToInsert.length} registros processados...`
+                      )
                     }
-
                   } catch (batchError) {
-                    const errorMessage = batchError instanceof Error ? batchError.message : 'Unknown error'
-                    console.error(`    ❌ Erro no lote ${j}-${j + smallBatchSize} para ${originalTicker}:`, errorMessage)
+                    const errorMessage =
+                      batchError instanceof Error
+                        ? batchError.message
+                        : "Unknown error"
+                    console.error(
+                      `    ❌ Erro no lote ${j}-${j + smallBatchSize} para ${originalTicker}:`,
+                      errorMessage
+                    )
                     // Continuar com próximo lote mesmo se um falhar
                   }
 
                   // Pequeno delay entre lotes para não sobrecarregar SQLite
-                  await new Promise(resolve => setTimeout(resolve, 50))
+                  await new Promise((resolve) => setTimeout(resolve, 50))
                 }
               }
             } else {
               // Para updates incrementais, usar estratégia mais conservadora
               const upsertBatchSize = 20 // Reduzido para SQLite
 
-              for (let j = 0; j < recordsToInsert.length; j += upsertBatchSize) {
+              for (
+                let j = 0;
+                j < recordsToInsert.length;
+                j += upsertBatchSize
+              ) {
                 const batch = recordsToInsert.slice(j, j + upsertBatchSize)
 
                 try {
-                  await Promise.allSettled(batch.map(async (record) => {
-                    await prisma.historicalPrice.upsert({
-                      where: {
-                        ticker_date: {
-                          ticker: record.ticker,
-                          date: record.date
-                        }
-                      },
-                      update: {
-                        open: record.open,
-                        high: record.high,
-                        low: record.low,
-                        close: record.close
-                      },
-                      create: record
+                  await Promise.allSettled(
+                    batch.map(async (record) => {
+                      await prisma.historicalPrice.upsert({
+                        where: {
+                          ticker_date: {
+                            ticker: record.ticker,
+                            date: record.date,
+                          },
+                        },
+                        update: {
+                          open: record.open,
+                          high: record.high,
+                          low: record.low,
+                          close: record.close,
+                        },
+                        create: record,
+                      })
+                      processed++
                     })
-                    processed++
-                  }))
+                  )
 
                   // Delay entre lotes
-                  await new Promise(resolve => setTimeout(resolve, 100))
-
+                  await new Promise((resolve) => setTimeout(resolve, 100))
                 } catch (error) {
-                  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                  const errorMessage =
+                    error instanceof Error ? error.message : "Unknown error"
                   console.error(`    ❌ Erro no lote de upserts:`, errorMessage)
                 }
               }
-              console.log(`  ✅ ${originalTicker}: ${processed} registros processados (upserts)`)
+              console.log(
+                `  ✅ ${originalTicker}: ${processed} registros processados (upserts)`
+              )
             }
 
             return {
@@ -243,9 +286,9 @@ export async function POST(req: NextRequest) {
               currency: asset.currency,
               records: {
                 found: historical.length,
-                processed
+                processed,
               },
-              message: `${processed} registros processados`
+              message: `${processed} registros processados`,
             }
           })
         )
@@ -254,18 +297,18 @@ export async function POST(req: NextRequest) {
         batchResults.forEach((result, index) => {
           const yahooTicker = tickerBatch[index]
           const originalTicker = tickerMap.get(yahooTicker)
-          const asset = assets.find(a => a.ticker === originalTicker)
+          const asset = assets.find((a) => a.ticker === originalTicker)
 
-          if (result.status === 'fulfilled') {
+          if (result.status === "fulfilled") {
             results.successful.push(result.value)
             results.totalRecords += result.value.records.processed
           } else {
             results.failed.push({
               ticker: originalTicker,
               yahooTicker,
-              name: asset?.name || 'Unknown',
-              error: result.reason.message || 'Unknown error',
-              details: result.reason.toString()
+              name: asset?.name || "Unknown",
+              error: result.reason.message || "Unknown error",
+              details: result.reason.toString(),
             })
           }
         })
@@ -274,18 +317,20 @@ export async function POST(req: NextRequest) {
         if (i + batchSize < yahooTickers.length) {
           const delay = historicalDays > 3650 ? 8000 : 3000 // 8s para 20 anos, 3s para períodos menores
           console.log(`  ⏱️ Aguardando ${delay}ms para SQLite processar...`)
-          await new Promise(resolve => setTimeout(resolve, delay))
+          await new Promise((resolve) => setTimeout(resolve, delay))
         }
       }
+    } catch (downloadError: unknown) {
+      console.error("❌ Erro geral no download otimizado:", downloadError)
 
-    } catch (downloadError: any) {
-      console.error('❌ Erro geral no download otimizado:', downloadError)
-
-      return NextResponse.json({
-        success: false,
-        error: "Bulk download failed",
-        details: downloadError.message
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Bulk download failed",
+          details: downloadError.message,
+        },
+        { status: 500 }
+      )
     }
 
     const endTime = new Date().toISOString()
@@ -295,7 +340,9 @@ export async function POST(req: NextRequest) {
     console.log(`✅ Sucessos: ${results.successful.length}`)
     console.log(`❌ Falhas: ${results.failed.length}`)
     console.log(`📊 Total de registros: ${results.totalRecords}`)
-    console.log(`⚡ Velocidade: ${Math.round(results.totalRecords / (duration / 1000))} registros/segundo`)
+    console.log(
+      `⚡ Velocidade: ${Math.round(results.totalRecords / (duration / 1000))} registros/segundo`
+    )
 
     return NextResponse.json({
       success: true,
@@ -306,22 +353,24 @@ export async function POST(req: NextRequest) {
         endTime,
         duration: `${Math.round(duration / 1000)}s`,
         summary: {
-          mode: 'bulk-optimized-historical',
-          technique: 'Inspirado no método Python com yf.download em lote',
+          mode: "bulk-optimized-historical",
+          technique: "Inspirado no método Python com yf.download em lote",
           historicalDays,
           filter: { currency },
           successRate: `${Math.round((results.successful.length / assets.length) * 100)}%`,
           totalRecords: results.totalRecords,
-          recordsPerSecond: Math.round(results.totalRecords / (duration / 1000)),
-          optimization: `Lotes de ${historicalDays > 3650 ? 3 : 10} ativos processados em paralelo`
-        }
+          recordsPerSecond: Math.round(
+            results.totalRecords / (duration / 1000)
+          ),
+          optimization: `Lotes de ${historicalDays > 3650 ? 3 : 10} ativos processados em paralelo`,
+        },
       },
-      message: `✨ Captura otimizada concluída: ${results.successful.length}/${assets.length} ativos com ${results.totalRecords} registros totais`
+      message: `✨ Captura otimizada concluída: ${results.successful.length}/${assets.length} ativos com ${results.totalRecords} registros totais`,
     })
-
   } catch (error) {
-    console.error('❌ Erro na API de captura otimizada:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error("❌ Erro na API de captura otimizada:", error)
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
       { error: "Internal server error", details: errorMessage },
       { status: 500 }

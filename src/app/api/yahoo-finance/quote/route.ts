@@ -5,11 +5,11 @@ import yahooFinance from "yahoo-finance2"
 import { prisma } from "@/lib/prisma"
 import { globalQuoteCache } from "@/lib/quote-cache"
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -43,10 +43,10 @@ export async function GET(req: NextRequest) {
         success: true,
         data: {
           ...cachedQuote,
-          source: 'cache'
+          source: "cache",
         },
         message: `Cached quote for ${ticker}`,
-        cached: true
+        cached: true,
       })
     }
 
@@ -56,16 +56,16 @@ export async function GET(req: NextRequest) {
 
       const quote = await yahooFinance.quote(yahooTicker, {
         fields: [
-          'symbol',
-          'shortName',
-          'longName',
-          'regularMarketPrice',
-          'regularMarketPreviousClose',
-          'regularMarketChange',
-          'regularMarketChangePercent',
-          'regularMarketTime',
-          'currency'
-        ]
+          "symbol",
+          "shortName",
+          "longName",
+          "regularMarketPrice",
+          "regularMarketPreviousClose",
+          "regularMarketChange",
+          "regularMarketChangePercent",
+          "regularMarketTime",
+          "currency",
+        ],
       })
 
       if (!quote || !quote.regularMarketPrice) {
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
 
       // Verificar se o ativo existe na nossa base
       const asset = await prisma.asset.findUnique({
-        where: { ticker }
+        where: { ticker },
       })
 
       if (!asset) {
@@ -96,29 +96,31 @@ export async function GET(req: NextRequest) {
         previousClose: quote.regularMarketPreviousClose,
         change: quote.regularMarketChange,
         changePercent: quote.regularMarketChangePercent,
-        lastUpdate: quote.regularMarketTime ? new Date(Number(quote.regularMarketTime) * 1000) : new Date(),
+        lastUpdate: quote.regularMarketTime
+          ? new Date(Number(quote.regularMarketTime) * 1000)
+          : new Date(),
         currency: quote.currency || asset.currency,
-        source: 'yahoo-finance'
+        source: "yahoo-finance",
       }
 
       // Salvar no cache
       globalQuoteCache.set(ticker, quoteData, 300) // 5 minutos de cache
 
       // Opcional: Salvar na base de dados históricos
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date().toISOString().split("T")[0]
 
       await prisma.historicalPrice.upsert({
         where: {
           ticker_date: {
             ticker,
-            date: today
-          }
+            date: today,
+          },
         },
         update: {
           close: quote.regularMarketPrice,
           open: quote.regularMarketPreviousClose, // Aproximação
           high: quote.regularMarketPrice, // Será atualizado com dados históricos completos
-          low: quote.regularMarketPrice   // Será atualizado com dados históricos completos
+          low: quote.regularMarketPrice, // Será atualizado com dados históricos completos
         },
         create: {
           ticker,
@@ -126,23 +128,25 @@ export async function GET(req: NextRequest) {
           open: quote.regularMarketPreviousClose || quote.regularMarketPrice,
           high: quote.regularMarketPrice,
           low: quote.regularMarketPrice,
-          close: quote.regularMarketPrice
-        }
+          close: quote.regularMarketPrice,
+        },
       })
 
       return NextResponse.json({
         success: true,
         data: quoteData,
-        message: `Quote updated for ${ticker}`
+        message: `Quote updated for ${ticker}`,
       })
-
-    } catch (yahooError: any) {
-      console.error(`Erro ao buscar cotação do Yahoo Finance para ${yahooTicker}:`, yahooError)
+    } catch (yahooError: unknown) {
+      console.error(
+        `Erro ao buscar cotação do Yahoo Finance para ${yahooTicker}:`,
+        yahooError
+      )
 
       // Fallback: buscar dados locais
       const localData = await prisma.historicalPrice.findFirst({
         where: { ticker },
-        orderBy: { date: 'desc' }
+        orderBy: { date: "desc" },
       })
 
       if (localData) {
@@ -157,10 +161,10 @@ export async function GET(req: NextRequest) {
             changePercent: null,
             lastUpdate: new Date(localData.date),
             currency: "N/A",
-            source: 'local-cache'
+            source: "local-cache",
           },
           message: `Using cached data for ${ticker} (Yahoo Finance unavailable)`,
-          warning: "Data from local cache, may be outdated"
+          warning: "Data from local cache, may be outdated",
         })
       }
 
@@ -168,14 +172,13 @@ export async function GET(req: NextRequest) {
         {
           error: `Failed to fetch quote for ${ticker}`,
           details: yahooError.message,
-          ticker: yahooTicker
+          ticker: yahooTicker,
         },
         { status: 500 }
       )
     }
-
   } catch (error) {
-    console.error('Error in quote API:', error)
+    console.error("Error in quote API:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -188,7 +191,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -214,11 +217,14 @@ export async function POST(req: NextRequest) {
     for (const ticker of tickers) {
       try {
         // Reusar a lógica do GET
-        const response = await fetch(`${req.nextUrl.origin}/api/yahoo-finance/quote?ticker=${ticker}`, {
-          headers: {
-            'Cookie': req.headers.get('cookie') || ''
+        const response = await fetch(
+          `${req.nextUrl.origin}/api/yahoo-finance/quote?ticker=${ticker}`,
+          {
+            headers: {
+              Cookie: req.headers.get("cookie") || "",
+            },
           }
-        })
+        )
 
         const data = await response.json()
 
@@ -227,7 +233,7 @@ export async function POST(req: NextRequest) {
         } else {
           errors.push({ ticker, error: data.error })
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         errors.push({ ticker, error: error.message })
       }
     }
@@ -239,12 +245,11 @@ export async function POST(req: NextRequest) {
       summary: {
         total: tickers.length,
         successful: results.length,
-        failed: errors.length
-      }
+        failed: errors.length,
+      },
     })
-
   } catch (error) {
-    console.error('Error in bulk quote API:', error)
+    console.error("Error in bulk quote API:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

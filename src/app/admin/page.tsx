@@ -4,9 +4,25 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, RefreshCw, BarChart3, Database, Clock, CheckCircle, XCircle, AlertCircle, Calendar } from "lucide-react"
+import {
+  Loader2,
+  RefreshCw,
+  BarChart3,
+  Database,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Calendar,
+} from "lucide-react"
 import { formatDate } from "@/lib/utils"
 
 interface UpdateStats {
@@ -18,7 +34,7 @@ interface UpdateStats {
     ticker: string
     lastUpdate: string
     daysAgo: number
-    status: 'current' | 'recent' | 'outdated'
+    status: "current" | "recent" | "outdated"
   }>
   lastCheck: string
 }
@@ -60,14 +76,14 @@ export default function AdminPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/yahoo-finance/update-all')
+      const response = await fetch("/api/yahoo-finance/update-all")
       const data = await response.json()
 
       if (data.success) {
         setStats(data.stats)
       }
     } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error)
+      console.error("Erro ao buscar estatísticas:", error)
     } finally {
       setLoading(false)
     }
@@ -78,33 +94,34 @@ export default function AdminPage() {
     setLastUpdate(null)
 
     try {
-      let endpoint = '/api/yahoo-finance/update-all'
-      let requestBody: any = {}
+      let endpoint = "/api/yahoo-finance/update-all"
+      let requestBody: Record<string, unknown> = {}
 
-      if (updateMode === 'bulk-optimized') {
+      if (updateMode === "bulk-optimized") {
         // Usar o novo endpoint otimizado
-        endpoint = '/api/yahoo-finance/bulk-historical'
+        endpoint = "/api/yahoo-finance/bulk-historical"
         requestBody = {
           currency: selectedCurrency === "all" ? null : selectedCurrency,
           historicalDays: historicalDays,
-          replaceExisting: true // Para captura de 20 anos, sempre substituir
+          replaceExisting: true, // Para captura de 20 anos, sempre substituir
         }
       } else {
         // Usar o endpoint tradicional
         requestBody = {
           currency: selectedCurrency === "all" ? null : selectedCurrency,
           mode: updateMode,
-          historicalDays: updateMode === "historical" ? historicalDays : undefined,
-          replaceExisting: updateMode === "historical"
+          historicalDays:
+            updateMode === "historical" ? historicalDays : undefined,
+          replaceExisting: updateMode === "historical",
         }
       }
 
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       })
 
       const data = await response.json()
@@ -114,10 +131,10 @@ export default function AdminPage() {
         // Atualizar estatísticas após a atualização
         setTimeout(fetchStats, 1000)
       } else {
-        console.error('Erro na atualização:', data.error)
+        console.error("Erro na atualização:", data.error)
       }
     } catch (error) {
-      console.error('Erro ao atualizar dados:', error)
+      console.error("Erro ao atualizar dados:", error)
     } finally {
       setUpdating(false)
     }
@@ -134,7 +151,9 @@ export default function AdminPage() {
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Carregando painel administrativo...</p>
+          <p className="text-muted-foreground">
+            Carregando painel administrativo...
+          </p>
         </div>
       </div>
     )
@@ -146,7 +165,9 @@ export default function AdminPage() {
         <div className="text-center space-y-4">
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
           <h3 className="text-lg font-medium">Acesso Restrito</h3>
-          <p className="text-muted-foreground">Faça login para acessar o painel administrativo.</p>
+          <p className="text-muted-foreground">
+            Faça login para acessar o painel administrativo.
+          </p>
         </div>
       </div>
     )
@@ -154,11 +175,11 @@ export default function AdminPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'current':
+      case "current":
         return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'recent':
+      case "recent":
         return <Clock className="h-4 w-4 text-yellow-500" />
-      case 'outdated':
+      case "outdated":
         return <XCircle className="h-4 w-4 text-red-500" />
       default:
         return <AlertCircle className="h-4 w-4 text-gray-500" />
@@ -167,11 +188,18 @@ export default function AdminPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'current':
-        return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Atual</Badge>
-      case 'recent':
+      case "current":
+        return (
+          <Badge
+            variant="default"
+            className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+          >
+            Atual
+          </Badge>
+        )
+      case "recent":
         return <Badge variant="secondary">Recente</Badge>
-      case 'outdated':
+      case "outdated":
         return <Badge variant="destructive">Desatualizado</Badge>
       default:
         return <Badge variant="outline">Desconhecido</Badge>
@@ -183,14 +211,16 @@ export default function AdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Admin - Yahoo Finance</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Admin - Yahoo Finance
+          </h1>
           <p className="text-muted-foreground">
             Gerenciar atualização de dados do Yahoo Finance
           </p>
         </div>
         <div className="flex gap-2">
           <Button
-            onClick={() => window.location.href = '/admin/scheduler'}
+            onClick={() => (window.location.href = "/admin/scheduler")}
             variant="secondary"
             size="sm"
           >
@@ -209,7 +239,9 @@ export default function AdminPage() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Ativos</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total de Ativos
+              </CardTitle>
               <Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -219,31 +251,43 @@ export default function AdminPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Atualizados Hoje</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Atualizados Hoje
+              </CardTitle>
               <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.updatedToday}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {stats.updatedToday}
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Atualizados Ontem</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Atualizados Ontem
+              </CardTitle>
               <Clock className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.updatedYesterday}</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {stats.updatedYesterday}
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Desatualizados</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Desatualizados
+              </CardTitle>
               <XCircle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.outdated}</div>
+              <div className="text-2xl font-bold text-red-600">
+                {stats.outdated}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -258,7 +302,10 @@ export default function AdminPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <div>
               <label className="text-sm font-medium">Moeda</label>
-              <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+              <Select
+                value={selectedCurrency}
+                onValueChange={setSelectedCurrency}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -279,17 +326,25 @@ export default function AdminPage() {
                 <SelectContent>
                   <SelectItem value="quotes">Cotações Atuais</SelectItem>
                   <SelectItem value="historical">Dados Históricos</SelectItem>
-                  <SelectItem value="bulk-optimized">📈 Histórico Otimizado (Recomendado para 20 anos)</SelectItem>
+                  <SelectItem value="bulk-optimized">
+                    📈 Histórico Otimizado (Recomendado para 20 anos)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {(updateMode === "historical" || updateMode === "bulk-optimized") && (
+            {(updateMode === "historical" ||
+              updateMode === "bulk-optimized") && (
               <div>
                 <label className="text-sm font-medium">
-                  {updateMode === "bulk-optimized" ? "Período Histórico" : "Dias Históricos"}
+                  {updateMode === "bulk-optimized"
+                    ? "Período Histórico"
+                    : "Dias Históricos"}
                 </label>
-                <Select value={historicalDays.toString()} onValueChange={(value) => setHistoricalDays(parseInt(value))}>
+                <Select
+                  value={historicalDays.toString()}
+                  onValueChange={(value) => setHistoricalDays(parseInt(value))}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -339,15 +394,23 @@ export default function AdminPage() {
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Sucessos</div>
-                <div className="text-lg font-semibold text-green-600">{lastUpdate.successful.length}</div>
+                <div className="text-lg font-semibold text-green-600">
+                  {lastUpdate.successful.length}
+                </div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Falhas</div>
-                <div className="text-lg font-semibold text-red-600">{lastUpdate.failed.length}</div>
+                <div className="text-lg font-semibold text-red-600">
+                  {lastUpdate.failed.length}
+                </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Taxa de Sucesso</div>
-                <div className="text-lg font-semibold">{lastUpdate.summary.successRate}</div>
+                <div className="text-sm text-muted-foreground">
+                  Taxa de Sucesso
+                </div>
+                <div className="text-lg font-semibold">
+                  {lastUpdate.summary.successRate}
+                </div>
               </div>
             </div>
 
@@ -358,19 +421,36 @@ export default function AdminPage() {
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Modo</div>
-                <div className="font-medium">{lastUpdate.summary.mode === "quotes" ? "Cotações" : "Histórico"}</div>
+                <div className="font-medium">
+                  {lastUpdate.summary.mode === "quotes"
+                    ? "Cotações"
+                    : "Histórico"}
+                </div>
               </div>
             </div>
 
             {lastUpdate.failed.length > 0 && (
               <div>
-                <h4 className="font-medium text-red-600 mb-2">Falhas ({lastUpdate.failed.length})</h4>
+                <h4 className="font-medium text-red-600 mb-2">
+                  Falhas ({lastUpdate.failed.length})
+                </h4>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {lastUpdate.failed.map((item, index) => (
-                    <div key={index} className="text-sm p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                      <div className="font-medium">{item.ticker} - {item.name}</div>
-                      <div className="text-red-600 dark:text-red-400">{item.error}</div>
-                      {item.details && <div className="text-xs text-muted-foreground">{item.details}</div>}
+                    <div
+                      key={index}
+                      className="text-sm p-2 bg-red-50 dark:bg-red-900/20 rounded"
+                    >
+                      <div className="font-medium">
+                        {item.ticker} - {item.name}
+                      </div>
+                      <div className="text-red-600 dark:text-red-400">
+                        {item.error}
+                      </div>
+                      {item.details && (
+                        <div className="text-xs text-muted-foreground">
+                          {item.details}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -393,13 +473,18 @@ export default function AdminPage() {
                   <tr className="border-b">
                     <th className="text-left p-3 font-medium">Ticker</th>
                     <th className="text-left p-3 font-medium">Status</th>
-                    <th className="text-left p-3 font-medium">Última Atualização</th>
+                    <th className="text-left p-3 font-medium">
+                      Última Atualização
+                    </th>
                     <th className="text-right p-3 font-medium">Dias Atrás</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats.assets.map((asset) => (
-                    <tr key={asset.ticker} className="border-b hover:bg-accent/50">
+                    <tr
+                      key={asset.ticker}
+                      className="border-b hover:bg-accent/50"
+                    >
                       <td className="p-3 font-medium">{asset.ticker}</td>
                       <td className="p-3">
                         <div className="flex items-center space-x-2">

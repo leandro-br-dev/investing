@@ -1,8 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+// useSession import removed as it's unused
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -57,7 +63,7 @@ export function TransactionModal({
   simulationDate,
   currentPosition,
   prefilledAsset,
-  availableCash
+  availableCash,
 }: TransactionModalProps) {
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
@@ -67,7 +73,7 @@ export function TransactionModal({
   const [formData, setFormData] = useState({
     ticker: initialTicker,
     quantity: "",
-    price: ""
+    price: "",
   })
 
   // Reset state when modal closes
@@ -78,7 +84,7 @@ export function TransactionModal({
     setFormData({
       ticker: initialTicker,
       quantity: "",
-      price: ""
+      price: "",
     })
     onClose()
   }
@@ -98,7 +104,7 @@ export function TransactionModal({
       const data = await response.json()
       setAssets((data.assets || []) as Asset[])
     } catch (error) {
-      console.error('Error searching assets:', error)
+      console.error("Error searching assets:", error)
       setAssets([])
     } finally {
       setSearching(false)
@@ -107,15 +113,16 @@ export function TransactionModal({
 
   const handleAssetSelect = (asset: Asset) => {
     setSelectedAsset(asset)
-    const defaultQuantity = mode === "close" && currentPosition
-      ? currentPosition.quantity.toString()
-      : asset.minLotSize.toString()
+    const defaultQuantity =
+      mode === "close" && currentPosition
+        ? currentPosition.quantity.toString()
+        : asset.minLotSize.toString()
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       ticker: asset.ticker,
       price: roundPrice(asset.price, asset.decimals).toString(),
-      quantity: defaultQuantity
+      quantity: defaultQuantity,
     }))
   }
 
@@ -130,17 +137,19 @@ export function TransactionModal({
             : `/api/assets/search?q=${encodeURIComponent(prefilledAsset.ticker)}`
           const response = await fetch(url)
           const data = await response.json()
-          const asset = (data.assets || []).find((a: Asset) => a.ticker === prefilledAsset.ticker)
+          const asset = (data.assets || []).find(
+            (a: Asset) => a.ticker === prefilledAsset.ticker
+          )
 
           if (asset) {
             handleAssetSelect(asset)
           } else if (prefilledAsset.price !== undefined) {
             // Usar preço pré-preenchido se disponível
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
               ticker: prefilledAsset.ticker,
               quantity: "1",
-              price: prefilledAsset.price?.toString() || ""
+              price: prefilledAsset.price?.toString() || "",
             }))
             // Criar asset temporário com dados disponíveis
             setSelectedAsset({
@@ -150,51 +159,53 @@ export function TransactionModal({
               market: "",
               price: prefilledAsset.price || 0,
               decimals: prefilledAsset.decimals || 2,
-              minLotSize: 1
+              minLotSize: 1,
             })
           } else {
             // Fallback: criar um ativo básico com os dados disponíveis
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
               ticker: prefilledAsset.ticker,
               quantity: "1",
-              price: ""
+              price: "",
             }))
           }
         } catch (error) {
-          console.error('Error fetching prefilled asset:', error)
+          console.error("Error fetching prefilled asset:", error)
         }
       }
 
       fetchPrefilledAsset()
     }
-  }, [isOpen, prefilledAsset, simulationDate, selectedAsset])
+  }, [isOpen, prefilledAsset, simulationDate, selectedAsset, handleAssetSelect])
 
   // Auto-select asset if initialTicker is provided
   useEffect(() => {
     if (initialTicker && isOpen) {
-      setFormData(prev => ({ ...prev, ticker: initialTicker }))
+      setFormData((prev) => ({ ...prev, ticker: initialTicker }))
       searchAssets(initialTicker).then(() => {
         // Auto-select first result if it matches exactly
         setTimeout(() => {
-          const exactMatch = assets.find(asset => asset.ticker === initialTicker)
+          const exactMatch = assets.find(
+            (asset) => asset.ticker === initialTicker
+          )
           if (exactMatch) {
             handleAssetSelect(exactMatch)
           }
         }, 500)
       })
     }
-  }, [initialTicker, isOpen])
+  }, [initialTicker, isOpen, assets, handleAssetSelect, searchAssets])
 
   // Auto-select exact match when assets are loaded
   useEffect(() => {
     if (initialTicker && assets.length > 0 && !selectedAsset) {
-      const exactMatch = assets.find(asset => asset.ticker === initialTicker)
+      const exactMatch = assets.find((asset) => asset.ticker === initialTicker)
       if (exactMatch) {
         handleAssetSelect(exactMatch)
       }
     }
-  }, [assets, initialTicker, selectedAsset])
+  }, [assets, initialTicker, selectedAsset, handleAssetSelect])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -206,12 +217,15 @@ export function TransactionModal({
     // Validar saldo disponível para compras no modo simulação
     if (mode === "buy" && simulationId && availableCash) {
       const totalCost = Number(formData.price) * Number(formData.quantity)
-      const availableBalance = selectedAsset.currency === "BRL"
-        ? availableCash.brl?.cashBalance || 0
-        : availableCash.usd?.cashBalance || 0
+      const availableBalance =
+        selectedAsset.currency === "BRL"
+          ? availableCash.brl?.cashBalance || 0
+          : availableCash.usd?.cashBalance || 0
 
       if (totalCost > availableBalance) {
-        alert(`Saldo insuficiente! Você tem ${formatCurrency(availableBalance, selectedAsset.currency)} disponível, mas a compra custa ${formatCurrency(totalCost, selectedAsset.currency)}.`)
+        alert(
+          `Saldo insuficiente! Você tem ${formatCurrency(availableBalance, selectedAsset.currency)} disponível, mas a compra custa ${formatCurrency(totalCost, selectedAsset.currency)}.`
+        )
         return
       }
     }
@@ -222,19 +236,19 @@ export function TransactionModal({
     try {
       const endpoint = simulationId
         ? `/api/simulations/${simulationId}/transactions`
-        : '/api/portfolio'
+        : "/api/portfolio"
 
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ticker: selectedAsset.ticker,
           quantity: Number(formData.quantity),
           price: Number(formData.price),
           currency: selectedAsset.currency,
-          type: mode === "close" ? "sell" : mode
+          type: mode === "close" ? "sell" : mode,
         }),
       })
 
@@ -243,20 +257,25 @@ export function TransactionModal({
         handleClose()
       } else {
         const errorData = await response.json()
-        setError(errorData.error || 'Erro ao processar transação')
-        console.error('Transaction error:', errorData)
+        setError(errorData.error || "Erro ao processar transação")
+        console.error("Transaction error:", errorData)
       }
     } catch (error) {
-      setError('Erro de conexão. Tente novamente.')
-      console.error('Transaction error:', error)
+      setError("Erro de conexão. Tente novamente.")
+      console.error("Transaction error:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const totalValue = selectedAsset && formData.quantity && formData.price
-    ? calculateTotal(Number(formData.price), Number(formData.quantity), selectedAsset.decimals)
-    : 0
+  const totalValue =
+    selectedAsset && formData.quantity && formData.price
+      ? calculateTotal(
+          Number(formData.price),
+          Number(formData.quantity),
+          selectedAsset.decimals
+        )
+      : 0
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -264,7 +283,11 @@ export function TransactionModal({
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <DollarSign className="mr-2 h-5 w-5" />
-            {mode === "buy" ? "Comprar Ação" : mode === "close" ? "Encerrar Posição" : "Vender Ação"}
+            {mode === "buy"
+              ? "Comprar Ação"
+              : mode === "close"
+                ? "Encerrar Posição"
+                : "Vender Ação"}
             {simulationId && (
               <span className="ml-2 px-2 py-1 text-xs bg-primary/10 text-primary rounded">
                 Simulação
@@ -276,8 +299,7 @@ export function TransactionModal({
               ? "Selecione um ativo e configure os detalhes da compra"
               : mode === "close"
                 ? "Confirme o encerramento completo da posição"
-                : "Configure os detalhes da venda do ativo selecionado"
-            }
+                : "Configure os detalhes da venda do ativo selecionado"}
           </DialogDescription>
         </DialogHeader>
 
@@ -286,8 +308,16 @@ export function TransactionModal({
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
@@ -308,7 +338,7 @@ export function TransactionModal({
                 value={formData.ticker}
                 onChange={(e) => {
                   const value = e.target.value.toUpperCase()
-                  setFormData(prev => ({ ...prev, ticker: value }))
+                  setFormData((prev) => ({ ...prev, ticker: value }))
                   searchAssets(value)
                 }}
                 className="pr-10"
@@ -344,7 +374,11 @@ export function TransactionModal({
                       </div>
                       <div className="text-right">
                         <div className="font-medium">
-                          {formatPrice(asset.price, asset.decimals, asset.currency)}
+                          {formatPrice(
+                            asset.price,
+                            asset.decimals,
+                            asset.currency
+                          )}
                         </div>
                       </div>
                     </div>
@@ -361,14 +395,20 @@ export function TransactionModal({
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium">{selectedAsset.ticker}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedAsset.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedAsset.name}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {selectedAsset.market} • {selectedAsset.currency}
                     </p>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold">
-                      {formatPrice(selectedAsset.price, selectedAsset.decimals, selectedAsset.currency)}
+                      {formatPrice(
+                        selectedAsset.price,
+                        selectedAsset.decimals,
+                        selectedAsset.currency
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">Preço atual</p>
                   </div>
@@ -386,20 +426,30 @@ export function TransactionModal({
                   <Input
                     id="quantity"
                     type="number"
-                    min={mode === "close" ? currentPosition?.quantity : selectedAsset.minLotSize}
-                    max={mode === "close" ? currentPosition?.quantity : undefined}
+                    min={
+                      mode === "close"
+                        ? currentPosition?.quantity
+                        : selectedAsset.minLotSize
+                    }
+                    max={
+                      mode === "close" ? currentPosition?.quantity : undefined
+                    }
                     step={selectedAsset.minLotSize}
                     placeholder={selectedAsset.minLotSize.toString()}
                     value={formData.quantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        quantity: e.target.value,
+                      }))
+                    }
                     required
                     disabled={mode === "close"}
                   />
                   <p className="text-xs text-muted-foreground">
                     {mode === "close"
                       ? `Encerrando posição: ${currentPosition?.quantity} ações`
-                      : `Lote mínimo: ${selectedAsset.minLotSize} ações`
-                    }
+                      : `Lote mínimo: ${selectedAsset.minLotSize} ações`}
                   </p>
                 </div>
 
@@ -416,13 +466,20 @@ export function TransactionModal({
                     id="price"
                     type="number"
                     min="0.01"
-                    step={`0.${'0'.repeat(selectedAsset.decimals - 1)}1`}
-                    placeholder={`0.${'0'.repeat(selectedAsset.decimals)}`}
+                    step={`0.${"0".repeat(selectedAsset.decimals - 1)}1`}
+                    placeholder={`0.${"0".repeat(selectedAsset.decimals)}`}
                     value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        price: e.target.value,
+                      }))
+                    }
                     readOnly={!!simulationDate}
                     disabled={!!simulationDate}
-                    className={simulationDate ? "bg-muted cursor-not-allowed" : ""}
+                    className={
+                      simulationDate ? "bg-muted cursor-not-allowed" : ""
+                    }
                     required
                   />
                   {simulationDate && (
@@ -447,43 +504,53 @@ export function TransactionModal({
                       </div>
                     </div>
                     <div className="mt-2 text-sm text-muted-foreground">
-                      {formData.quantity} ações × {formatPrice(Number(formData.price), selectedAsset.decimals, selectedAsset.currency)}
+                      {formData.quantity} ações ×{" "}
+                      {formatPrice(
+                        Number(formData.price),
+                        selectedAsset.decimals,
+                        selectedAsset.currency
+                      )}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
               {/* Available Cash - only show for buy mode in simulation */}
-              {mode === "buy" && simulationId && availableCash && selectedAsset && (
-                <Card className="mt-4">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Saldo Disponível</span>
+              {mode === "buy" &&
+                simulationId &&
+                availableCash &&
+                selectedAsset && (
+                  <Card className="mt-4">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">Saldo Disponível</span>
+                        </div>
+                        <div className="text-lg font-bold">
+                          {formatCurrency(
+                            selectedAsset.currency === "BRL"
+                              ? availableCash.brl?.cashBalance || 0
+                              : availableCash.usd?.cashBalance || 0,
+                            selectedAsset.currency
+                          )}
+                        </div>
                       </div>
-                      <div className="text-lg font-bold">
-                        {formatCurrency(
-                          selectedAsset.currency === "BRL"
-                            ? availableCash.brl?.cashBalance || 0
-                            : availableCash.usd?.cashBalance || 0,
-                          selectedAsset.currency
-                        )}
-                      </div>
-                    </div>
-                    {totalValue > 0 && (
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        Após a compra: {formatCurrency(
-                          (selectedAsset.currency === "BRL"
-                            ? availableCash.brl?.cashBalance || 0
-                            : availableCash.usd?.cashBalance || 0) - totalValue,
-                          selectedAsset.currency
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+                      {totalValue > 0 && (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          Após a compra:{" "}
+                          {formatCurrency(
+                            (selectedAsset.currency === "BRL"
+                              ? availableCash.brl?.cashBalance || 0
+                              : availableCash.usd?.cashBalance || 0) -
+                              totalValue,
+                            selectedAsset.currency
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
             </>
           )}
 
@@ -504,19 +571,19 @@ export function TransactionModal({
                   try {
                     const endpoint = simulationId
                       ? `/api/simulations/${simulationId}/transactions`
-                      : '/api/portfolio'
+                      : "/api/portfolio"
 
                     const response = await fetch(endpoint, {
-                      method: 'POST',
+                      method: "POST",
                       headers: {
-                        'Content-Type': 'application/json',
+                        "Content-Type": "application/json",
                       },
                       body: JSON.stringify({
                         ticker: selectedAsset.ticker,
                         quantity: currentPosition.quantity,
                         price: Number(formData.price),
                         currency: selectedAsset.currency,
-                        type: "sell"
+                        type: "sell",
                       }),
                     })
 
@@ -525,10 +592,10 @@ export function TransactionModal({
                       handleClose()
                     } else {
                       const error = await response.json()
-                      console.error('Close position error:', error)
+                      console.error("Close position error:", error)
                     }
                   } catch (error) {
-                    console.error('Close position error:', error)
+                    console.error("Close position error:", error)
                   } finally {
                     setLoading(false)
                   }
@@ -540,7 +607,12 @@ export function TransactionModal({
             )}
             <Button
               type="submit"
-              disabled={!selectedAsset || !formData.quantity || !formData.price || loading}
+              disabled={
+                !selectedAsset ||
+                !formData.quantity ||
+                !formData.price ||
+                loading
+              }
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {mode === "buy" ? "Comprar" : "Vender"}

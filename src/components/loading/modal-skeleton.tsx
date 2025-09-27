@@ -6,7 +6,7 @@ interface ModalSkeletonProps {
   title?: string
 }
 
-export function ModalSkeleton({ isOpen, title = "Carregando..." }: ModalSkeletonProps) {
+export function ModalSkeleton({ isOpen }: ModalSkeletonProps) {
   return (
     <Dialog open={isOpen}>
       <DialogContent className="sm:max-w-[600px]">

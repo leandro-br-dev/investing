@@ -5,7 +5,11 @@ import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Briefcase, Plus, Loader2, RefreshCw } from "lucide-react"
-import { formatCurrency, formatPercentage, getPercentageColor } from "@/lib/utils"
+import {
+  formatCurrency,
+  formatPercentage,
+  getPercentageColor,
+} from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import { TransactionModal } from "@/components/modals/transaction-modal"
 import { PortfolioPerformanceChart } from "@/components/charts/portfolio-performance-chart"
@@ -43,8 +47,16 @@ interface PortfolioData {
 export default function PortfolioPage() {
   const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<"BRL" | "USD">("BRL")
-  const [portfolioBRL, setPortfolioBRL] = useState<PortfolioData>({ positions: [], summary: null, portfolioId: "" })
-  const [portfolioUSD, setPortfolioUSD] = useState<PortfolioData>({ positions: [], summary: null, portfolioId: "" })
+  const [portfolioBRL, setPortfolioBRL] = useState<PortfolioData>({
+    positions: [],
+    summary: null,
+    portfolioId: "",
+  })
+  const [portfolioUSD, setPortfolioUSD] = useState<PortfolioData>({
+    positions: [],
+    summary: null,
+    portfolioId: "",
+  })
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [transactionModal, setTransactionModal] = useState<{
@@ -56,8 +68,8 @@ export default function PortfolioPage() {
       ticker: string
     }
   }>({ isOpen: false, mode: "buy" })
-  const [performanceData, setPerformanceData] = useState<any[]>([])
-  const [loadingPerformance, setLoadingPerformance] = useState(false)
+  const [performanceData, setPerformanceData] = useState<unknown[]>([])
+  const [, setLoadingPerformance] = useState(false)
 
   const fetchPortfolioData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -65,14 +77,14 @@ export default function PortfolioPage() {
 
     try {
       const [brlData, usdData] = await Promise.all([
-        fetch('/api/portfolio?currency=BRL').then(r => r.json()),
-        fetch('/api/portfolio?currency=USD').then(r => r.json())
+        fetch("/api/portfolio?currency=BRL").then((r) => r.json()),
+        fetch("/api/portfolio?currency=USD").then((r) => r.json()),
       ])
 
       setPortfolioBRL(brlData)
       setPortfolioUSD(usdData)
     } catch (error) {
-      console.error('Error fetching portfolio data:', error)
+      console.error("Error fetching portfolio data:", error)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -82,14 +94,16 @@ export default function PortfolioPage() {
   const fetchPerformanceData = async (currency: "BRL" | "USD") => {
     setLoadingPerformance(true)
     try {
-      const response = await fetch(`/api/portfolio/performance?currency=${currency}&days=30`)
+      const response = await fetch(
+        `/api/portfolio/performance?currency=${currency}&days=30`
+      )
       const data = await response.json()
 
       if (data.success) {
         setPerformanceData(data.data)
       }
     } catch (error) {
-      console.error('Error fetching performance data:', error)
+      console.error("Error fetching performance data:", error)
       setPerformanceData([])
     } finally {
       setLoadingPerformance(false)
@@ -108,8 +122,10 @@ export default function PortfolioPage() {
     }
   }, [session, activeTab])
 
-  const currentPortfolio = activeTab === "BRL" ? portfolioBRL.positions : portfolioUSD.positions
-  const currentSummary = activeTab === "BRL" ? portfolioBRL.summary : portfolioUSD.summary
+  const currentPortfolio =
+    activeTab === "BRL" ? portfolioBRL.positions : portfolioUSD.positions
+  const currentSummary =
+    activeTab === "BRL" ? portfolioBRL.summary : portfolioUSD.summary
   const currency = activeTab
 
   if (loading) {
@@ -134,7 +150,11 @@ export default function PortfolioPage() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => fetchPortfolioData(true)} disabled={refreshing}>
+          <Button
+            variant="outline"
+            onClick={() => fetchPortfolioData(true)}
+            disabled={refreshing}
+          >
             {refreshing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -142,7 +162,9 @@ export default function PortfolioPage() {
             )}
             Refresh
           </Button>
-          <Button onClick={() => setTransactionModal({ isOpen: true, mode: "buy" })}>
+          <Button
+            onClick={() => setTransactionModal({ isOpen: true, mode: "buy" })}
+          >
             <Plus className="mr-2 h-4 w-4" />
             New Position
           </Button>
@@ -161,11 +183,27 @@ export default function PortfolioPage() {
           <CardContent>
             <div className="space-y-2">
               <div className="text-2xl font-bold">
-                {formatCurrency(portfolioBRL.summary?.totalCurrentValue || 0, "BRL")}
+                {formatCurrency(
+                  portfolioBRL.summary?.totalCurrentValue || 0,
+                  "BRL"
+                )}
               </div>
-              <div className={cn("text-sm", getPercentageColor(portfolioBRL.summary?.totalProfitLoss || 0))}>
-                {(portfolioBRL.summary?.totalProfitLoss || 0) > 0 ? "+" : ""}{formatCurrency(portfolioBRL.summary?.totalProfitLoss || 0, "BRL")}
-                ({formatPercentage(portfolioBRL.summary?.totalProfitLossPercent || 0)})
+              <div
+                className={cn(
+                  "text-sm",
+                  getPercentageColor(portfolioBRL.summary?.totalProfitLoss || 0)
+                )}
+              >
+                {(portfolioBRL.summary?.totalProfitLoss || 0) > 0 ? "+" : ""}
+                {formatCurrency(
+                  portfolioBRL.summary?.totalProfitLoss || 0,
+                  "BRL"
+                )}
+                (
+                {formatPercentage(
+                  portfolioBRL.summary?.totalProfitLossPercent || 0
+                )}
+                )
               </div>
               <div className="text-xs text-muted-foreground">
                 {portfolioBRL.summary?.positionsCount || 0} posições
@@ -184,11 +222,27 @@ export default function PortfolioPage() {
           <CardContent>
             <div className="space-y-2">
               <div className="text-2xl font-bold">
-                {formatCurrency(portfolioUSD.summary?.totalCurrentValue || 0, "USD")}
+                {formatCurrency(
+                  portfolioUSD.summary?.totalCurrentValue || 0,
+                  "USD"
+                )}
               </div>
-              <div className={cn("text-sm", getPercentageColor(portfolioUSD.summary?.totalProfitLoss || 0))}>
-                {(portfolioUSD.summary?.totalProfitLoss || 0) > 0 ? "+" : ""}{formatCurrency(portfolioUSD.summary?.totalProfitLoss || 0, "USD")}
-                ({formatPercentage(portfolioUSD.summary?.totalProfitLossPercent || 0)})
+              <div
+                className={cn(
+                  "text-sm",
+                  getPercentageColor(portfolioUSD.summary?.totalProfitLoss || 0)
+                )}
+              >
+                {(portfolioUSD.summary?.totalProfitLoss || 0) > 0 ? "+" : ""}
+                {formatCurrency(
+                  portfolioUSD.summary?.totalProfitLoss || 0,
+                  "USD"
+                )}
+                (
+                {formatPercentage(
+                  portfolioUSD.summary?.totalProfitLossPercent || 0
+                )}
+                )
               </div>
               <div className="text-xs text-muted-foreground">
                 {portfolioUSD.summary?.positionsCount || 0} posições
@@ -238,44 +292,53 @@ export default function PortfolioPage() {
           <CardTitle className="flex items-center justify-between">
             <span>Posições - {currency}</span>
             <span className="text-sm font-normal text-muted-foreground">
-              Total: {formatCurrency(currentSummary?.totalCurrentValue || 0, currency)}
+              Total:{" "}
+              {formatCurrency(currentSummary?.totalCurrentValue || 0, currency)}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {/* Mobile View */}
           <div className="md:hidden space-y-4">
-            {currentPortfolio.map((position, index) => (
+            {currentPortfolio.map((item, index) => (
               <Card key={index} variant="outline">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <h3 className="font-semibold">{position.ticker}</h3>
+                      <h3 className="font-semibold">{item.ticker}</h3>
                       <p className="text-sm text-muted-foreground truncate max-w-[150px]">
-                        {position.name}
+                        {item.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {position.quantity} ações
+                        {item.quantity} ações
                       </p>
                     </div>
                     <div className="text-right">
                       <div className="font-semibold">
-                        {formatCurrency(position.currentValue, currency)}
+                        {formatCurrency(item.currentValue, currency)}
                       </div>
-                      <div className={cn("text-sm", getPercentageColor(position.profitLoss))}>
-                        {position.profitLoss > 0 ? "+" : ""}{formatCurrency(position.profitLoss, currency)}
+                      <div
+                        className={cn(
+                          "text-sm",
+                          getPercentageColor(item.profitLoss)
+                        )}
+                      >
+                        {item.profitLoss > 0 ? "+" : ""}
+                        {formatCurrency(item.profitLoss, currency)}
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Preço Médio:</span>
-                      <div>{formatCurrency(position.averagePrice, currency)}</div>
+                      <span className="text-muted-foreground">
+                        Preço Médio:
+                      </span>
+                      <div>{formatCurrency(item.averagePrice, currency)}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Atual:</span>
-                      <div>{formatCurrency(position.currentPrice, currency)}</div>
+                      <div>{formatCurrency(item.currentPrice, currency)}</div>
                     </div>
                   </div>
 
@@ -284,7 +347,13 @@ export default function PortfolioPage() {
                       size="sm"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => setTransactionModal({ isOpen: true, mode: "buy", ticker: position.ticker })}
+                      onClick={() =>
+                        setTransactionModal({
+                          isOpen: true,
+                          mode: "buy",
+                          ticker: item.ticker,
+                        })
+                      }
                     >
                       Comprar +
                     </Button>
@@ -292,15 +361,17 @@ export default function PortfolioPage() {
                       size="sm"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => setTransactionModal({
-                        isOpen: true,
-                        mode: "sell",
-                        ticker: position.ticker,
-                        currentPosition: {
-                          quantity: position.quantity,
-                          ticker: position.ticker
-                        }
-                      })}
+                      onClick={() =>
+                        setTransactionModal({
+                          isOpen: true,
+                          mode: "sell",
+                          ticker: item.ticker,
+                          currentPosition: {
+                            quantity: item.quantity,
+                            ticker: item.ticker,
+                          },
+                        })
+                      }
                     >
                       Vender
                     </Button>
@@ -319,64 +390,81 @@ export default function PortfolioPage() {
                   <th className="text-right p-3 font-medium">Quantidade</th>
                   <th className="text-right p-3 font-medium">Preço Médio</th>
                   <th className="text-right p-3 font-medium">Preço Atual</th>
-                  <th className="text-right p-3 font-medium">Valor de Mercado</th>
+                  <th className="text-right p-3 font-medium">
+                    Valor de Mercado
+                  </th>
                   <th className="text-right p-3 font-medium">L&P</th>
                   <th className="text-right p-3 font-medium">L&P %</th>
                   <th className="text-center p-3 font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {currentPortfolio.map((position, index) => (
+                {currentPortfolio.map((item, index) => (
                   <tr key={index} className="border-b hover:bg-accent/50">
                     <td className="p-3">
                       <div>
-                        <div className="font-medium">{position.ticker}</div>
-                        <div className="text-sm text-muted-foreground">{position.name}</div>
+                        <div className="font-medium">{item.ticker}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {item.name}
+                        </div>
                       </div>
                     </td>
-                    <td className="text-right p-3">{position.quantity}</td>
+                    <td className="text-right p-3">{item.quantity}</td>
                     <td className="text-right p-3">
-                      {formatCurrency(position.averagePrice, currency)}
+                      {formatCurrency(item.averagePrice, currency)}
                     </td>
                     <td className="text-right p-3">
-                      {formatCurrency(position.currentPrice, currency)}
+                      {formatCurrency(item.currentPrice, currency)}
                     </td>
                     <td className="text-right p-3 font-medium">
-                      {formatCurrency(position.currentValue, currency)}
+                      {formatCurrency(item.currentValue, currency)}
                     </td>
-                    <td className={cn(
-                      "text-right p-3 font-medium",
-                      getPercentageColor(position.profitLoss)
-                    )}>
-                      {position.profitLoss > 0 ? "+" : ""}{formatCurrency(position.profitLoss, currency)}
+                    <td
+                      className={cn(
+                        "text-right p-3 font-medium",
+                        getPercentageColor(item.profitLoss)
+                      )}
+                    >
+                      {item.profitLoss > 0 ? "+" : ""}
+                      {formatCurrency(item.profitLoss, currency)}
                     </td>
-                    <td className={cn(
-                      "text-right p-3 font-medium",
-                      getPercentageColor(position.profitLossPercent)
-                    )}>
-                      {formatPercentage(position.profitLossPercent)}
+                    <td
+                      className={cn(
+                        "text-right p-3 font-medium",
+                        getPercentageColor(item.profitLossPercent)
+                      )}
+                    >
+                      {formatPercentage(item.profitLossPercent)}
                     </td>
                     <td className="text-center p-3">
                       <div className="flex justify-center space-x-1 flex-wrap gap-1">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setTransactionModal({ isOpen: true, mode: "buy", ticker: position.ticker })}
+                          onClick={() =>
+                            setTransactionModal({
+                              isOpen: true,
+                              mode: "buy",
+                              ticker: item.ticker,
+                            })
+                          }
                         >
                           Comprar
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setTransactionModal({
-                            isOpen: true,
-                            mode: "sell",
-                            ticker: position.ticker,
-                            currentPosition: {
-                              quantity: position.quantity,
-                              ticker: position.ticker
-                            }
-                          })}
+                          onClick={() =>
+                            setTransactionModal({
+                              isOpen: true,
+                              mode: "sell",
+                              ticker: item.ticker,
+                              currentPosition: {
+                                quantity: item.quantity,
+                                ticker: item.ticker,
+                              },
+                            })
+                          }
                         >
                           Vender
                         </Button>
@@ -392,11 +480,18 @@ export default function PortfolioPage() {
           {currentPortfolio.length === 0 && (
             <div className="text-center py-12">
               <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">Nenhuma posição ainda</h3>
+              <h3 className="text-lg font-medium mb-2">
+                Nenhuma posição ainda
+              </h3>
               <p className="text-muted-foreground mb-4">
-                Comece construindo seu portfólio {currency} comprando sua primeira posição.
+                Comece construindo seu portfólio {currency} comprando sua
+                primeira posição.
               </p>
-              <Button onClick={() => setTransactionModal({ isOpen: true, mode: "buy" })}>
+              <Button
+                onClick={() =>
+                  setTransactionModal({ isOpen: true, mode: "buy" })
+                }
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Posição
               </Button>

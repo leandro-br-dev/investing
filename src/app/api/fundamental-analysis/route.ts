@@ -9,38 +9,43 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { searchParams } = new URL(req.url)
-    const ticker = searchParams.get('ticker')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const orderBy = searchParams.get('orderBy') || 'overallScore' // 'overallScore', 'analysisDate', 'valueScore'
-    const direction = (searchParams.get('direction') || 'desc') as 'asc' | 'desc'
-    const minScore = parseInt(searchParams.get('minScore') || '0')
-    const recommendation = searchParams.get('recommendation') // 'BUY', 'HOLD', 'SELL'
+    const ticker = searchParams.get("ticker")
+    const limit = parseInt(searchParams.get("limit") || "20")
+    const orderBy = searchParams.get("orderBy") || "overallScore" // 'overallScore', 'analysisDate', 'valueScore'
+    const direction = (searchParams.get("direction") || "desc") as
+      | "asc"
+      | "desc"
+    const minScore = parseInt(searchParams.get("minScore") || "0")
+    const recommendation = searchParams.get("recommendation") // 'BUY', 'HOLD', 'SELL'
 
     if (ticker) {
       // Buscar análise específica de um ativo
       const analysis = await FundamentalAnalysisEngine.getLatestAnalysis(ticker)
 
       if (!analysis) {
-        return NextResponse.json({
-          error: "Analysis not found",
-          message: `No fundamental analysis found for ${ticker}. Try running an analysis first.`
-        }, { status: 404 })
+        return NextResponse.json(
+          {
+            error: "Analysis not found",
+            message: `No fundamental analysis found for ${ticker}. Try running an analysis first.`,
+          },
+          { status: 404 }
+        )
       }
 
       return NextResponse.json({
         success: true,
-        data: analysis
+        data: analysis,
       })
     }
 
     // Buscar análises com filtros
-    const whereClause: any = {
-      overallScore: { gte: minScore }
+    const whereClause: unknown = {
+      overallScore: { gte: minScore },
     }
 
     if (recommendation) {
@@ -67,14 +72,17 @@ export async function GET(req: NextRequest) {
     //             { overallScore: direction },
     //   take: limit
     // })
-    const analyses: any[] = [] // Temporarily disabled
+    const analyses: unknown[] = [] // Temporarily disabled
 
     // Agrupar por ticker (pegar apenas a mais recente de cada)
     const latestAnalyses = new Map<string, any>()
 
     for (const analysis of analyses) {
       const existing = latestAnalyses.get(analysis.ticker)
-      if (!existing || new Date(analysis.analysisDate) > new Date(existing.analysisDate)) {
+      if (
+        !existing ||
+        new Date(analysis.analysisDate) > new Date(existing.analysisDate)
+      ) {
         latestAnalyses.set(analysis.ticker, analysis)
       }
     }
@@ -86,17 +94,28 @@ export async function GET(req: NextRequest) {
       data: result,
       summary: {
         total: result.length,
-        buyRecommendations: result.filter((a: any) => a.recommendation === 'BUY').length,
-        holdRecommendations: result.filter((a: any) => a.recommendation === 'HOLD').length,
-        sellRecommendations: result.filter((a: any) => a.recommendation === 'SELL').length,
-        averageScore: result.length > 0
-          ? Math.round(result.reduce((sum: number, a: any) => sum + (a.overallScore || 0), 0) / result.length)
-          : 0
-      }
+        buyRecommendations: result.filter(
+          (a: unknown) => a.recommendation === "BUY"
+        ).length,
+        holdRecommendations: result.filter(
+          (a: unknown) => a.recommendation === "HOLD"
+        ).length,
+        sellRecommendations: result.filter(
+          (a: unknown) => a.recommendation === "SELL"
+        ).length,
+        averageScore:
+          result.length > 0
+            ? Math.round(
+                result.reduce(
+                  (sum: number, a: unknown) => sum + (a.overallScore || 0),
+                  0
+                ) / result.length
+              )
+            : 0,
+      },
     })
-
   } catch (error) {
-    console.error('Error fetching fundamental analysis:', error)
+    console.error("Error fetching fundamental analysis:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -109,7 +128,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -117,7 +136,7 @@ export async function POST(req: NextRequest) {
     const {
       ticker,
       tickers, // Array de tickers para análise em lote
-      force = false // Forçar nova análise mesmo se já existe uma recente
+      force = false, // Forçar nova análise mesmo se já existe uma recente
     } = body
 
     if (ticker) {
@@ -143,7 +162,7 @@ export async function POST(req: NextRequest) {
             success: true,
             message: "Recent analysis found",
             data: existingAnalysis,
-            cached: true
+            cached: true,
           })
         }
       }
@@ -151,62 +170,79 @@ export async function POST(req: NextRequest) {
       const result = await FundamentalAnalysisEngine.analyzeAsset(ticker)
 
       if (!result) {
-        return NextResponse.json({
-          error: "Analysis failed",
-          message: `Could not analyze ${ticker}. Check if asset exists and has sufficient data.`
-        }, { status: 400 })
+        return NextResponse.json(
+          {
+            error: "Analysis failed",
+            message: `Could not analyze ${ticker}. Check if asset exists and has sufficient data.`,
+          },
+          { status: 400 }
+        )
       }
 
-      console.log(`✅ Análise de ${ticker} concluída: Score ${result.overallScore}/100`)
+      console.log(
+        `✅ Análise de ${ticker} concluída: Score ${result.overallScore}/100`
+      )
 
       return NextResponse.json({
         success: true,
         message: `Analysis completed for ${ticker}`,
-        data: result
+        data: result,
       })
-
     } else if (tickers && Array.isArray(tickers)) {
       // Análise em lote
-      console.log(`📊 Iniciando análise fundamentalista em lote para ${tickers.length} ativos`)
+      console.log(
+        `📊 Iniciando análise fundamentalista em lote para ${tickers.length} ativos`
+      )
 
       // Executar análises em paralelo (máximo 5 por vez para não sobrecarregar)
       const batchSize = 5
-      const results: any[] = []
-      const errors: any[] = []
+      const results: unknown[] = []
+      const errors: unknown[] = []
 
       for (let i = 0; i < tickers.length; i += batchSize) {
         const batch = tickers.slice(i, i + batchSize)
-        console.log(`🔄 Processando lote ${Math.floor(i / batchSize) + 1}/${Math.ceil(tickers.length / batchSize)}`)
+        console.log(
+          `🔄 Processando lote ${Math.floor(i / batchSize) + 1}/${Math.ceil(tickers.length / batchSize)}`
+        )
 
         const batchPromises = batch.map(async (tickerSymbol: string) => {
           try {
             // Verificar análise recente se não forçado
             if (!force) {
-              const existingAnalysis = await prisma.fundamentalAnalysis.findFirst({
-                where: {
-                  ticker: tickerSymbol,
-                  analysisDate: {
-                    gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
-                  }
-                },
-                orderBy: { analysisDate: 'desc' }
-              })
+              const existingAnalysis =
+                await prisma.fundamentalAnalysis.findFirst({
+                  where: {
+                    ticker: tickerSymbol,
+                    analysisDate: {
+                      gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+                    },
+                  },
+                  orderBy: { analysisDate: "desc" },
+                })
 
               if (existingAnalysis) {
-                results.push({ ticker: tickerSymbol, cached: true, data: existingAnalysis })
+                results.push({
+                  ticker: tickerSymbol,
+                  cached: true,
+                  data: existingAnalysis,
+                })
                 return
               }
             }
 
-            const result = await FundamentalAnalysisEngine.analyzeAsset(tickerSymbol)
+            const result =
+              await FundamentalAnalysisEngine.analyzeAsset(tickerSymbol)
 
             if (result) {
-              results.push({ ticker: tickerSymbol, success: true, data: result })
+              results.push({
+                ticker: tickerSymbol,
+                success: true,
+                data: result,
+              })
             } else {
               errors.push({ ticker: tickerSymbol, error: "Analysis failed" })
             }
-
-          } catch (error: any) {
+          } catch (error: unknown) {
             errors.push({ ticker: tickerSymbol, error: error.message })
           }
         })
@@ -215,11 +251,13 @@ export async function POST(req: NextRequest) {
 
         // Pequeno delay entre lotes
         if (i + batchSize < tickers.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000))
+          await new Promise((resolve) => setTimeout(resolve, 1000))
         }
       }
 
-      console.log(`🎉 Análise em lote concluída: ${results.length} sucessos, ${errors.length} erros`)
+      console.log(
+        `🎉 Análise em lote concluída: ${results.length} sucessos, ${errors.length} erros`
+      )
 
       return NextResponse.json({
         success: true,
@@ -231,76 +269,85 @@ export async function POST(req: NextRequest) {
             total: tickers.length,
             successful: results.length,
             failed: errors.length,
-            successRate: `${Math.round((results.length / tickers.length) * 100)}%`
-          }
-        }
+            successRate: `${Math.round((results.length / tickers.length) * 100)}%`,
+          },
+        },
       })
-
     } else {
-      return NextResponse.json({
-        error: "Invalid request",
-        message: "Provide either 'ticker' for single analysis or 'tickers' array for bulk analysis"
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: "Invalid request",
+          message:
+            "Provide either 'ticker' for single analysis or 'tickers' array for bulk analysis",
+        },
+        { status: 400 }
+      )
     }
-
-  } catch (error: any) {
-    console.error('Error in fundamental analysis:', error)
-    return NextResponse.json({
-      error: "Internal server error",
-      details: error.message
-    }, { status: 500 })
+  } catch (error: unknown) {
+    console.error("Error in fundamental analysis:", error)
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error.message,
+      },
+      { status: 500 }
+    )
   }
 }
 
 // DELETE - Limpar análises antigas
-export async function DELETE(req: NextRequest) {
+export async function DELETE() {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const { searchParams } = new URL(req.url)
-    const ticker = searchParams.get('ticker')
-    const olderThanDays = parseInt(searchParams.get('olderThanDays') || '30')
+    const ticker = searchParams.get("ticker")
+    const olderThanDays = parseInt(searchParams.get("olderThanDays") || "30")
 
-    const cutoffDate = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000)
+    const cutoffDate = new Date(
+      Date.now() - olderThanDays * 24 * 60 * 60 * 1000
+    )
 
     if (ticker) {
       // Limpar análises antigas de um ativo específico
       const deleted = await prisma.fundamentalAnalysis.deleteMany({
         where: {
           ticker,
-          analysisDate: { lt: cutoffDate }
-        }
+          analysisDate: { lt: cutoffDate },
+        },
       })
 
       return NextResponse.json({
         success: true,
         message: `Deleted ${deleted.count} old analyses for ${ticker}`,
-        deleted: deleted.count
+        deleted: deleted.count,
       })
     } else {
       // Limpar todas as análises antigas
       const deleted = await prisma.fundamentalAnalysis.deleteMany({
         where: {
-          analysisDate: { lt: cutoffDate }
-        }
+          analysisDate: { lt: cutoffDate },
+        },
       })
 
       return NextResponse.json({
         success: true,
         message: `Deleted ${deleted.count} old analyses (older than ${olderThanDays} days)`,
-        deleted: deleted.count
+        deleted: deleted.count,
       })
     }
-
-  } catch (error: any) {
-    console.error('Error deleting old analyses:', error)
-    return NextResponse.json({
-      error: "Internal server error",
-      details: error.message
-    }, { status: 500 })
+  } catch (error: unknown) {
+    console.error("Error deleting old analyses:", error)
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error.message,
+      },
+      { status: 500 }
+    )
   }
 }

@@ -1,7 +1,15 @@
 "use client"
 
 import { useMemo } from "react"
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts"
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/utils"
@@ -27,16 +35,15 @@ export function PortfolioPerformanceChart({
   data,
   currency = "BOTH",
   title = "Performance da Carteira",
-  className = ""
+  className = "",
 }: PortfolioPerformanceChartProps) {
-
   // Preparar dados para o gráfico
   const chartData = useMemo(() => {
-    return data.map(item => ({
+    return data.map((item) => ({
       ...item,
       formattedDate: formatDate(item.date, { month: "short", day: "numeric" }),
       totalValueFormatted: item.totalValue,
-      profitLossFormatted: item.profitLoss
+      profitLossFormatted: item.profitLoss,
     }))
   }, [data])
 
@@ -48,14 +55,16 @@ export function PortfolioPerformanceChart({
     const firstData = data[0]
 
     const totalReturn = latestData.totalValue - latestData.totalCost
-    const totalReturnPercent = latestData.totalCost > 0
-      ? ((latestData.totalValue / latestData.totalCost) - 1) * 100
-      : 0
+    const totalReturnPercent =
+      latestData.totalCost > 0
+        ? (latestData.totalValue / latestData.totalCost - 1) * 100
+        : 0
 
     const periodReturn = latestData.totalValue - firstData.totalValue
-    const periodReturnPercent = firstData.totalValue > 0
-      ? ((latestData.totalValue / firstData.totalValue) - 1) * 100
-      : 0
+    const periodReturnPercent =
+      firstData.totalValue > 0
+        ? (latestData.totalValue / firstData.totalValue - 1) * 100
+        : 0
 
     return {
       currentValue: latestData.totalValue,
@@ -65,25 +74,37 @@ export function PortfolioPerformanceChart({
       periodReturn,
       periodReturnPercent,
       isPositive: totalReturn >= 0,
-      isPeriodPositive: periodReturn >= 0
+      isPeriodPositive: periodReturn >= 0,
     }
   }, [data])
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: unknown) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
         <div className="bg-background border rounded-lg p-3 shadow-lg">
-          <p className="font-medium">{formatDate(label)}</p>
+          <p className="font-medium">{formatDate(data.date)}</p>
           <p className="text-blue-600">
-            Valor Total: {formatCurrency(data.totalValue, currency === "USD" ? "USD" : "BRL")}
+            Valor Total:{" "}
+            {formatCurrency(
+              data.totalValue,
+              currency === "USD" ? "USD" : "BRL"
+            )}
           </p>
           <p className="text-gray-600">
-            Custo Total: {formatCurrency(data.totalCost, currency === "USD" ? "USD" : "BRL")}
+            Custo Total:{" "}
+            {formatCurrency(data.totalCost, currency === "USD" ? "USD" : "BRL")}
           </p>
-          <p className={data.profitLoss >= 0 ? "text-green-600" : "text-red-600"}>
-            P&L: {formatCurrency(data.profitLoss, currency === "USD" ? "USD" : "BRL")}
-            ({data.profitLossPercent >= 0 ? "+" : ""}{data.profitLossPercent.toFixed(2)}%)
+          <p
+            className={data.profitLoss >= 0 ? "text-green-600" : "text-red-600"}
+          >
+            P&L:{" "}
+            {formatCurrency(
+              data.profitLoss,
+              currency === "USD" ? "USD" : "BRL"
+            )}
+            ({data.profitLossPercent >= 0 ? "+" : ""}
+            {data.profitLossPercent.toFixed(2)}%)
           </p>
         </div>
       )
@@ -122,33 +143,58 @@ export function PortfolioPerformanceChart({
             <div className="bg-muted/30 p-3 rounded-lg">
               <div className="text-sm text-muted-foreground">Valor Atual</div>
               <div className="text-lg font-bold">
-                {formatCurrency(stats.currentValue, currency === "USD" ? "USD" : "BRL")}
+                {formatCurrency(
+                  stats.currentValue,
+                  currency === "USD" ? "USD" : "BRL"
+                )}
               </div>
             </div>
 
             <div className="bg-muted/30 p-3 rounded-lg">
               <div className="text-sm text-muted-foreground">Retorno Total</div>
-              <div className={`text-lg font-bold flex items-center gap-1 ${
-                stats.isPositive ? "text-green-600" : "text-red-600"
-              }`}>
-                {stats.isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                {stats.totalReturnPercent >= 0 ? "+" : ""}{stats.totalReturnPercent.toFixed(2)}%
+              <div
+                className={`text-lg font-bold flex items-center gap-1 ${
+                  stats.isPositive ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {stats.isPositive ? (
+                  <TrendingUp className="h-4 w-4" />
+                ) : (
+                  <TrendingDown className="h-4 w-4" />
+                )}
+                {stats.totalReturnPercent >= 0 ? "+" : ""}
+                {stats.totalReturnPercent.toFixed(2)}%
               </div>
               <div className="text-xs text-muted-foreground">
-                {formatCurrency(stats.totalReturn, currency === "USD" ? "USD" : "BRL")}
+                {formatCurrency(
+                  stats.totalReturn,
+                  currency === "USD" ? "USD" : "BRL"
+                )}
               </div>
             </div>
 
             <div className="bg-muted/30 p-3 rounded-lg">
-              <div className="text-sm text-muted-foreground">Retorno no Período</div>
-              <div className={`text-lg font-bold flex items-center gap-1 ${
-                stats.isPeriodPositive ? "text-green-600" : "text-red-600"
-              }`}>
-                {stats.isPeriodPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                {stats.periodReturnPercent >= 0 ? "+" : ""}{stats.periodReturnPercent.toFixed(2)}%
+              <div className="text-sm text-muted-foreground">
+                Retorno no Período
+              </div>
+              <div
+                className={`text-lg font-bold flex items-center gap-1 ${
+                  stats.isPeriodPositive ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {stats.isPeriodPositive ? (
+                  <TrendingUp className="h-4 w-4" />
+                ) : (
+                  <TrendingDown className="h-4 w-4" />
+                )}
+                {stats.periodReturnPercent >= 0 ? "+" : ""}
+                {stats.periodReturnPercent.toFixed(2)}%
               </div>
               <div className="text-xs text-muted-foreground">
-                {formatCurrency(stats.periodReturn, currency === "USD" ? "USD" : "BRL")}
+                {formatCurrency(
+                  stats.periodReturn,
+                  currency === "USD" ? "USD" : "BRL"
+                )}
               </div>
             </div>
           </div>
@@ -158,30 +204,36 @@ export function PortfolioPerformanceChart({
       <CardContent>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <AreaChart
+              data={chartData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
                 </linearGradient>
                 <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6b7280" stopOpacity={0.6}/>
-                  <stop offset="95%" stopColor="#6b7280" stopOpacity={0.1}/>
+                  <stop offset="5%" stopColor="#6b7280" stopOpacity={0.6} />
+                  <stop offset="95%" stopColor="#6b7280" stopOpacity={0.1} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis
                 dataKey="formattedDate"
                 fontSize={12}
-                tick={{ fill: 'currentColor' }}
+                tick={{ fill: "currentColor" }}
                 interval="preserveStartEnd"
               />
               <YAxis
                 fontSize={12}
-                tick={{ fill: 'currentColor' }}
+                tick={{ fill: "currentColor" }}
                 tickFormatter={(value) => {
-                  const formatted = formatCurrency(value, currency === "USD" ? "USD" : "BRL")
-                  return formatted.replace(/[R$USD\s]/g, '').trim()
+                  const formatted = formatCurrency(
+                    value,
+                    currency === "USD" ? "USD" : "BRL"
+                  )
+                  return formatted.replace(/[R$USD\s]/g, "").trim()
                 }}
               />
               <Tooltip content={<CustomTooltip />} />
@@ -216,7 +268,10 @@ export function PortfolioPerformanceChart({
             <span>Valor da Carteira</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-1 bg-gray-500 rounded" style={{ borderStyle: 'dashed' }}></div>
+            <div
+              className="w-3 h-1 bg-gray-500 rounded"
+              style={{ borderStyle: "dashed" }}
+            ></div>
             <span>Custo Investido</span>
           </div>
         </div>

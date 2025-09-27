@@ -11,7 +11,7 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as { user?: { id: string } }).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -26,7 +26,7 @@ export async function GET(
 
     // Buscar o ativo
     const asset = await prisma.asset.findFirst({
-      where: { ticker: ticker.toUpperCase() }
+      where: { ticker: ticker.toUpperCase() },
     })
 
     if (!asset) {
@@ -34,8 +34,8 @@ export async function GET(
     }
 
     // Buscar preços históricos
-    const whereClause: any = {
-      ticker: asset.ticker
+    const whereClause: unknown = {
+      ticker: asset.ticker,
     }
 
     if (startDate || effectiveEndDate) {
@@ -50,17 +50,17 @@ export async function GET(
 
     const prices = await prisma.historicalPrice.findMany({
       where: whereClause,
-      orderBy: { date: 'asc' },
-      take: 365 // Limitar a 1 ano de dados
+      orderBy: { date: "asc" },
+      take: 365, // Limitar a 1 ano de dados
     })
 
-    const formattedPrices = prices.map((price: any) => ({
+    const formattedPrices = prices.map((price: unknown) => ({
       date: price.date,
       open: Number(price.open),
       high: Number(price.high),
       low: Number(price.low),
       close: Number(price.close),
-      volume: Number(price.volume || 0)
+      volume: Number(price.volume || 0),
     }))
 
     const response = NextResponse.json({
@@ -68,14 +68,16 @@ export async function GET(
         ticker: asset.ticker,
         name: asset.name,
         currency: asset.currency,
-        market: asset.market
+        market: asset.market,
       },
       prices: formattedPrices,
       period: {
         startDate: startDate || (prices.length > 0 ? prices[0].date : null),
-        endDate: endDate || (prices.length > 0 ? prices[prices.length - 1].date : null),
-        totalDays: prices.length
-      }
+        endDate:
+          endDate ||
+          (prices.length > 0 ? prices[prices.length - 1].date : null),
+        totalDays: prices.length,
+      },
     })
 
     // Add cache headers for historical prices (cache for 30 minutes since data is historical)
@@ -85,9 +87,8 @@ export async function GET(
     })
 
     return response
-
   } catch (error) {
-    console.error('Error fetching asset prices:', error)
+    console.error("Error fetching asset prices:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

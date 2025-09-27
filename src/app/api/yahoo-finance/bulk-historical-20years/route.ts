@@ -6,43 +6,42 @@ import { prisma } from "@/lib/prisma"
 let loadingStatus = {
   isRunning: false,
   progress: 0,
-  currentAsset: '',
+  currentAsset: "",
   totalAssets: 0,
   processedAssets: 0,
   errors: [] as string[],
   startTime: null as Date | null,
   results: {
-    successful: [] as any[],
-    failed: [] as any[],
-    totalRecords: 0
-  }
+    successful: [] as unknown[],
+    failed: [] as unknown[],
+    totalRecords: 0,
+  },
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   return NextResponse.json({
     success: true,
-    status: loadingStatus
+    status: loadingStatus,
   })
 }
 
 export async function POST(req: NextRequest) {
   if (loadingStatus.isRunning) {
-    return NextResponse.json({
-      error: "Carregamento já em andamento",
-      status: loadingStatus
-    }, { status: 409 })
+    return NextResponse.json(
+      {
+        error: "Carregamento já em andamento",
+        status: loadingStatus,
+      },
+      { status: 409 }
+    )
   }
 
   try {
     const body = await req.json()
-    const {
-      currency = null,
-      yearsBack = 20,
-      replaceExisting = false
-    } = body
+    const { currency = null, yearsBack = 20, replaceExisting = false } = body
 
     console.log(`🚀 Iniciando carregamento de 20 anos de dados históricos`)
-    console.log(`💱 Moeda: ${currency || 'Todas'}`)
+    console.log(`💱 Moeda: ${currency || "Todas"}`)
     console.log(`🔄 Replace existing: ${replaceExisting}`)
 
     // Buscar ativos
@@ -53,19 +52,16 @@ export async function POST(req: NextRequest) {
         ticker: true,
         name: true,
         currency: true,
-        market: true
+        market: true,
       },
-      orderBy: [
-        { currency: 'asc' },
-        { ticker: 'asc' }
-      ]
+      orderBy: [{ currency: "asc" }, { ticker: "asc" }],
     })
 
     if (assets.length === 0) {
       return NextResponse.json({
         success: false,
         error: "Nenhum ativo encontrado",
-        filter: { currency }
+        filter: { currency },
       })
     }
 
@@ -73,16 +69,16 @@ export async function POST(req: NextRequest) {
     loadingStatus = {
       isRunning: true,
       progress: 0,
-      currentAsset: '',
+      currentAsset: "",
       totalAssets: assets.length,
       processedAssets: 0,
       errors: [] as string[],
       startTime: new Date(),
       results: {
-        successful: [] as any[],
-        failed: [] as any[],
-        totalRecords: 0
-      }
+        successful: [] as unknown[],
+        failed: [] as unknown[],
+        totalRecords: 0,
+      },
     }
 
     // Processar em background (não await)
@@ -91,27 +87,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Carregamento iniciado em background para ${assets.length} ativos`,
-      trackingUrl: '/api/yahoo-finance/bulk-historical-20years',
+      trackingUrl: "/api/yahoo-finance/bulk-historical-20years",
       totalAssets: assets.length,
-      estimatedDuration: `${Math.round(assets.length * 3)} minutos`
+      estimatedDuration: `${Math.round(assets.length * 3)} minutos`,
     })
-
-  } catch (error: any) {
+  } catch (error: unknown) {
     loadingStatus.isRunning = false
-    console.error('❌ Erro ao iniciar carregamento:', error)
-    return NextResponse.json({
-      error: "Erro interno do servidor",
-      details: error.message
-    }, { status: 500 })
+    console.error("❌ Erro ao iniciar carregamento:", error)
+    return NextResponse.json(
+      {
+        error: "Erro interno do servidor",
+        details: error.message,
+      },
+      { status: 500 }
+    )
   }
 }
 
-async function processAssetsInBackground(assets: any[], yearsBack: number, replaceExisting: boolean) {
+async function processAssetsInBackground(
+  assets: unknown[],
+  yearsBack: number,
+  replaceExisting: boolean
+) {
   const endDate = new Date()
   const startDate = new Date()
   startDate.setFullYear(startDate.getFullYear() - yearsBack)
 
-  console.log(`📅 Período: ${startDate.toISOString().split('T')[0]} até ${endDate.toISOString().split('T')[0]}`)
+  console.log(
+    `📅 Período: ${startDate.toISOString().split("T")[0]} até ${endDate.toISOString().split("T")[0]}`
+  )
 
   const convertTickerForYahoo = (ticker: string): string => {
     if (ticker.match(/[A-Z]{4}[0-9]{1,2}/)) {
@@ -129,21 +133,26 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
       loadingStatus.currentAsset = ticker
       loadingStatus.progress = Math.round((i / assets.length) * 100)
 
-      console.log(`📡 [${i + 1}/${assets.length}] Processando ${ticker} (${yahooTicker})...`)
+      console.log(
+        `📡 [${i + 1}/${assets.length}] Processando ${ticker} (${yahooTicker})...`
+      )
 
       // Verificar se já tem dados suficientes
       if (!replaceExisting) {
         const existingCount = await prisma.historicalPrice.count({
-          where: { ticker }
+          where: { ticker },
         })
 
-        if (existingCount > 1000) { // Se já tem mais de 1000 registros, pular
-          console.log(`⏭️ ${ticker} já tem ${existingCount} registros, pulando...`)
+        if (existingCount > 1000) {
+          // Se já tem mais de 1000 registros, pular
+          console.log(
+            `⏭️ ${ticker} já tem ${existingCount} registros, pulando...`
+          )
           loadingStatus.results.successful.push({
             ticker,
             name,
             message: `Skipped - already has ${existingCount} records`,
-            records: existingCount
+            records: existingCount,
           })
           loadingStatus.processedAssets++
           continue
@@ -154,7 +163,7 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
       const historical = await yahooFinance.historical(yahooTicker, {
         period1: startDate,
         period2: endDate,
-        interval: '1d'
+        interval: "1d",
       })
 
       if (!historical || historical.length === 0) {
@@ -166,9 +175,11 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
       // Remover dados existentes se solicitado
       if (replaceExisting) {
         const deletedCount = await prisma.historicalPrice.deleteMany({
-          where: { ticker }
+          where: { ticker },
         })
-        console.log(`🗑️ ${ticker}: ${deletedCount.count} registros antigos removidos`)
+        console.log(
+          `🗑️ ${ticker}: ${deletedCount.count} registros antigos removidos`
+        )
       }
 
       // Processar em lotes muito pequenos para evitar timeout
@@ -184,20 +195,20 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
             async (tx) => {
               for (const record of miniLot) {
                 try {
-                  const date = record.date.toISOString().split('T')[0]
+                  const date = record.date.toISOString().split("T")[0]
 
                   await tx.historicalPrice.upsert({
                     where: {
                       ticker_date: {
                         ticker,
-                        date
-                      }
+                        date,
+                      },
                     },
                     update: {
                       open: Number((record.open || 0).toFixed(2)),
                       high: Number((record.high || 0).toFixed(2)),
                       low: Number((record.low || 0).toFixed(2)),
-                      close: Number((record.close || 0).toFixed(2))
+                      close: Number((record.close || 0).toFixed(2)),
                     },
                     create: {
                       ticker,
@@ -205,13 +216,16 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
                       open: Number((record.open || 0).toFixed(2)),
                       high: Number((record.high || 0).toFixed(2)),
                       low: Number((record.low || 0).toFixed(2)),
-                      close: Number((record.close || 0).toFixed(2))
-                    }
+                      close: Number((record.close || 0).toFixed(2)),
+                    },
                   })
 
                   processed++
                 } catch (error) {
-                  console.error(`❌ Erro ao salvar registro para ${ticker}:`, error)
+                  console.error(
+                    `❌ Erro ao salvar registro para ${ticker}:`,
+                    error
+                  )
                   errors++
                 }
               }
@@ -223,8 +237,7 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
           )
 
           // Pequeno delay entre mini-lotes
-          await new Promise(resolve => setTimeout(resolve, 100))
-
+          await new Promise((resolve) => setTimeout(resolve, 100))
         } catch (error) {
           console.error(`❌ Erro no mini-lote para ${ticker}:`, error)
           errors += miniLot.length
@@ -240,20 +253,21 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
         records: {
           found: historical.length,
           processed,
-          errors
+          errors,
         },
         period: {
-          start: startDate.toISOString().split('T')[0],
-          end: endDate.toISOString().split('T')[0]
-        }
+          start: startDate.toISOString().split("T")[0],
+          end: endDate.toISOString().split("T")[0],
+        },
       })
 
       loadingStatus.results.totalRecords += processed
       loadingStatus.processedAssets++
 
-      console.log(`✅ ${ticker}: ${processed} registros salvos (${errors} erros)`)
-
-    } catch (error: any) {
+      console.log(
+        `✅ ${ticker}: ${processed} registros salvos (${errors} erros)`
+      )
+    } catch (error: unknown) {
       console.error(`❌ Erro ao processar ${ticker}:`, error.message)
 
       loadingStatus.results.failed.push({
@@ -263,7 +277,7 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
         market,
         yahooTicker,
         error: error.message,
-        details: error.name || 'Unknown Error'
+        details: error.name || "Unknown Error",
       })
 
       loadingStatus.errors.push(`${ticker}: ${error.message}`)
@@ -272,14 +286,14 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
 
     // Delay entre ativos para não sobrecarregar a API do Yahoo
     if (i < assets.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 2000)) // 2 segundos
+      await new Promise((resolve) => setTimeout(resolve, 2000)) // 2 segundos
     }
   }
 
   // Finalizar
   loadingStatus.isRunning = false
   loadingStatus.progress = 100
-  loadingStatus.currentAsset = ''
+  loadingStatus.currentAsset = ""
 
   const endTime = new Date()
   const duration = endTime.getTime() - (loadingStatus.startTime?.getTime() || 0)
@@ -294,18 +308,21 @@ async function processAssetsInBackground(assets: any[], yearsBack: number, repla
 // DELETE - Parar o carregamento
 export async function DELETE(req: NextRequest) {
   if (!loadingStatus.isRunning) {
-    return NextResponse.json({
-      error: "Nenhum carregamento em andamento",
-      status: loadingStatus
-    }, { status: 400 })
+    return NextResponse.json(
+      {
+        error: "Nenhum carregamento em andamento",
+        status: loadingStatus,
+      },
+      { status: 400 }
+    )
   }
 
   loadingStatus.isRunning = false
-  console.log('⏹️ Carregamento cancelado pelo usuário')
+  console.log("⏹️ Carregamento cancelado pelo usuário")
 
   return NextResponse.json({
     success: true,
     message: "Carregamento cancelado",
-    status: loadingStatus
+    status: loadingStatus,
   })
 }

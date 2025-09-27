@@ -1,6 +1,6 @@
 interface CachedQuote {
   ticker: string
-  data: any
+  data: unknown
   timestamp: number
   expiresAt: number
 }
@@ -17,12 +17,15 @@ class QuoteCache {
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
       quoteTTL: config.quoteTTL || 300, // 5 minutos por padrão
-      maxSize: config.maxSize || 500  // 500 items por padrão
+      maxSize: config.maxSize || 500, // 500 items por padrão
     }
   }
 
   // Gerar chave do cache
-  private getCacheKey(ticker: string, type: 'quote' | 'historical' = 'quote'): string {
+  private getCacheKey(
+    ticker: string,
+    type: "quote" | "historical" = "quote"
+  ): string {
     return `${type}:${ticker.toUpperCase()}`
   }
 
@@ -46,8 +49,9 @@ class QuoteCache {
     if (this.cache.size <= this.config.maxSize) return
 
     // Ordenar por timestamp (mais antigos primeiro)
-    const entries = Array.from(this.cache.entries())
-      .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+    const entries = Array.from(this.cache.entries()).sort(
+      ([, a], [, b]) => a.timestamp - b.timestamp
+    )
 
     // Remover 20% dos mais antigos
     const toRemove = Math.ceil(this.cache.size * 0.2)
@@ -57,7 +61,7 @@ class QuoteCache {
   }
 
   // Buscar cotação do cache
-  get(ticker: string): any | null {
+  get(ticker: string): unknown | null {
     const key = this.getCacheKey(ticker)
     const cached = this.cache.get(key)
 
@@ -71,7 +75,7 @@ class QuoteCache {
   }
 
   // Salvar cotação no cache
-  set(ticker: string, data: any, customTTL?: number): void {
+  set(ticker: string, data: unknown, customTTL?: number): void {
     const key = this.getCacheKey(ticker)
     const ttl = customTTL || this.config.quoteTTL
     const now = Date.now()
@@ -80,7 +84,7 @@ class QuoteCache {
       ticker: ticker.toUpperCase(),
       data,
       timestamp: now,
-      expiresAt: now + (ttl * 1000)
+      expiresAt: now + ttl * 1000,
     }
 
     this.cache.set(key, cached)
@@ -122,13 +126,13 @@ class QuoteCache {
       valid,
       expired,
       maxSize: this.config.maxSize,
-      hitRatio: valid / (valid + expired) || 0
+      hitRatio: valid / (valid + expired) || 0,
     }
   }
 
   // Verificar se existem cotações recentes (para determinar se o mercado está aberto)
   hasRecentData(maxAgeMinutes: number = 30): boolean {
-    const cutoff = Date.now() - (maxAgeMinutes * 60 * 1000)
+    const cutoff = Date.now() - maxAgeMinutes * 60 * 1000
 
     for (const cached of Array.from(this.cache.values())) {
       if (cached.timestamp > cutoff) {
@@ -140,8 +144,8 @@ class QuoteCache {
   }
 
   // Buscar múltiplas cotações do cache
-  getMultiple(tickers: string[]): { [ticker: string]: any } {
-    const result: { [ticker: string]: any } = {}
+  getMultiple(tickers: string[]): { [ticker: string]: unknown } {
+    const result: { [ticker: string]: unknown } = {}
 
     for (const ticker of tickers) {
       const data = this.get(ticker)
@@ -161,8 +165,8 @@ class QuoteCache {
 
 // Singleton para cache global
 const globalQuoteCache = new QuoteCache({
-  quoteTTL: 300,    // 5 minutos para cotações
-  maxSize: 1000     // 1000 cotações no máximo
+  quoteTTL: 300, // 5 minutos para cotações
+  maxSize: 1000, // 1000 cotações no máximo
 })
 
 export { QuoteCache, globalQuoteCache }
@@ -170,7 +174,7 @@ export { QuoteCache, globalQuoteCache }
 // Utilitários para cache de dados históricos em memória (para operações rápidas)
 interface HistoricalCacheEntry {
   ticker: string
-  data: any[]
+  data: unknown[]
   period: string
   timestamp: number
   expiresAt: number
@@ -184,7 +188,7 @@ class HistoricalCache {
     return `hist:${ticker.toUpperCase()}:${days}d`
   }
 
-  get(ticker: string, days: number): any[] | null {
+  get(ticker: string, days: number): unknown[] | null {
     const key = this.getCacheKey(ticker, days)
     const cached = this.cache.get(key)
 
@@ -196,7 +200,7 @@ class HistoricalCache {
     return cached.data
   }
 
-  set(ticker: string, days: number, data: any[]): void {
+  set(ticker: string, days: number, data: unknown[]): void {
     const key = this.getCacheKey(ticker, days)
     const now = Date.now()
 
@@ -205,7 +209,7 @@ class HistoricalCache {
       data,
       period: `${days}d`,
       timestamp: now,
-      expiresAt: now + this.TTL
+      expiresAt: now + this.TTL,
     })
   }
 

@@ -10,11 +10,11 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = (session as any).user.id
+    const userId = (session as unknown).user.id
     const simulationId = params.id
     const body = await req.json()
     const { ticker, quantity, price, currency, type = "buy" } = body
@@ -38,38 +38,38 @@ export async function POST(
     const simulation = await prisma.simulation.findFirst({
       where: {
         id: simulationId,
-        userId
-      }
+        userId,
+      },
     })
 
     if (!simulation) {
-      return NextResponse.json({ error: "Simulation not found" }, { status: 404 })
-    }
-
-    // Verificar se o ativo existe
-    const asset = await prisma.asset.findUnique({
-      where: { ticker }
-    })
-
-    if (!asset) {
       return NextResponse.json(
-        { error: "Asset not found" },
+        { error: "Simulation not found" },
         { status: 404 }
       )
     }
 
+    // Verificar se o ativo existe
+    const asset = await prisma.asset.findUnique({
+      where: { ticker },
+    })
+
+    if (!asset) {
+      return NextResponse.json({ error: "Asset not found" }, { status: 404 })
+    }
+
     if (asset.currency !== currency) {
-      return NextResponse.json(
-        { error: "Currency mismatch" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Currency mismatch" }, { status: 400 })
     }
 
     const totalCost = quantity * price
 
     if (type === "buy") {
       // Operação de compra
-      const currentCash = currency === "BRL" ? simulation.currentCashBRL : simulation.currentCashUSD
+      const currentCash =
+        currency === "BRL"
+          ? simulation.currentCashBRL
+          : simulation.currentCashUSD
 
       if (Number(currentCash) < totalCost) {
         return NextResponse.json(
@@ -83,9 +83,9 @@ export async function POST(
         where: {
           simulationId_ticker: {
             simulationId,
-            ticker
-          }
-        }
+            ticker,
+          },
+        },
       })
 
       if (existingPosition && simulation.minPurchaseIntervalDays > 0) {
@@ -94,23 +94,26 @@ export async function POST(
           where: {
             simulationId,
             ticker,
-            type: "buy"
+            type: "buy",
           },
           orderBy: {
-            executedAt: "desc"
-          }
+            executedAt: "desc",
+          },
         })
 
         if (lastPurchase) {
           const daysSinceLastPurchase = Math.floor(
-            (new Date().getTime() - new Date(lastPurchase.executedAt).getTime()) / (1000 * 60 * 60 * 24)
+            (new Date().getTime() -
+              new Date(lastPurchase.executedAt).getTime()) /
+              (1000 * 60 * 60 * 24)
           )
 
           if (daysSinceLastPurchase < simulation.minPurchaseIntervalDays) {
-            const remainingDays = simulation.minPurchaseIntervalDays - daysSinceLastPurchase
+            const remainingDays =
+              simulation.minPurchaseIntervalDays - daysSinceLastPurchase
             return NextResponse.json(
               {
-                error: `Aguarde ${remainingDays} dia(s) antes de comprar ${ticker} novamente. Esta regra ajuda a evitar compras impulsivas e permite melhor aproveitamento das oportunidades.`
+                error: `Aguarde ${remainingDays} dia(s) antes de comprar ${ticker} novamente. Esta regra ajuda a evitar compras impulsivas e permite melhor aproveitamento das oportunidades.`,
               },
               { status: 400 }
             )
@@ -122,23 +125,25 @@ export async function POST(
       await prisma.$transaction(async (tx) => {
         if (existingPosition) {
           // Atualizar posição existente (calcular novo preço médio)
-          const newQuantity = Number(existingPosition.quantity) + Number(quantity)
-          const newAvgPrice = (
-            (Number(existingPosition.quantity) * Number(existingPosition.avgPrice)) +
-            (Number(quantity) * Number(price))
-          ) / newQuantity
+          const newQuantity =
+            Number(existingPosition.quantity) + Number(quantity)
+          const newAvgPrice =
+            (Number(existingPosition.quantity) *
+              Number(existingPosition.avgPrice) +
+              Number(quantity) * Number(price)) /
+            newQuantity
 
           await tx.simulationItem.update({
             where: {
               simulationId_ticker: {
                 simulationId,
-                ticker
-              }
+                ticker,
+              },
             },
             data: {
               quantity: newQuantity,
-              avgPrice: Number(newAvgPrice.toFixed(2))
-            }
+              avgPrice: Number(newAvgPrice.toFixed(2)),
+            },
           })
         } else {
           // Criar nova posição
@@ -148,19 +153,20 @@ export async function POST(
               ticker,
               quantity,
               avgPrice: price,
-              currency
-            }
+              currency,
+            },
           })
         }
 
         // Atualizar cash da simulação
-        const updateData = currency === "BRL"
-          ? { currentCashBRL: Number(simulation.currentCashBRL) - totalCost }
-          : { currentCashUSD: Number(simulation.currentCashUSD) - totalCost }
+        const updateData =
+          currency === "BRL"
+            ? { currentCashBRL: Number(simulation.currentCashBRL) - totalCost }
+            : { currentCashUSD: Number(simulation.currentCashUSD) - totalCost }
 
         await tx.simulation.update({
           where: { id: simulationId },
-          data: updateData
+          data: updateData,
         })
 
         // Registrar transação
@@ -169,36 +175,38 @@ export async function POST(
             userId,
             simulationId,
             ticker,
-            type: 'buy',
+            type: "buy",
             quantity,
             price,
             totalAmount: totalCost,
-            currency
-          }
+            currency,
+          },
         })
       })
 
-      return NextResponse.json({
-        message: "Buy transaction completed successfully",
-        transaction: {
-          type: "buy",
-          ticker,
-          quantity,
-          price,
-          currency,
-          totalCost
-        }
-      }, { status: 201 })
-
+      return NextResponse.json(
+        {
+          message: "Buy transaction completed successfully",
+          transaction: {
+            type: "buy",
+            ticker,
+            quantity,
+            price,
+            currency,
+            totalCost,
+          },
+        },
+        { status: 201 }
+      )
     } else if (type === "sell") {
       // Operação de venda
       const existingPosition = await prisma.simulationItem.findUnique({
         where: {
           simulationId_ticker: {
             simulationId,
-            ticker
-          }
-        }
+            ticker,
+          },
+        },
       })
 
       if (!existingPosition) {
@@ -227,9 +235,9 @@ export async function POST(
             where: {
               simulationId_ticker: {
                 simulationId,
-                ticker
-              }
-            }
+                ticker,
+              },
+            },
           })
         } else {
           // Vender parte da posição
@@ -237,27 +245,34 @@ export async function POST(
             where: {
               simulationId_ticker: {
                 simulationId,
-                ticker
-              }
+                ticker,
+              },
             },
             data: {
-              quantity: Number(existingPosition.quantity) - quantity
-            }
+              quantity: Number(existingPosition.quantity) - quantity,
+            },
           })
         }
 
         // Atualizar cash e lucro realizado da simulação
-        const updateData = currency === "BRL" ? {
-          currentCashBRL: Number(simulation.currentCashBRL) + totalReceived,
-          realizedProfitBRL: Number(simulation.realizedProfitBRL) + realizedProfit
-        } : {
-          currentCashUSD: Number(simulation.currentCashUSD) + totalReceived,
-          realizedProfitUSD: Number(simulation.realizedProfitUSD) + realizedProfit
-        }
+        const updateData =
+          currency === "BRL"
+            ? {
+                currentCashBRL:
+                  Number(simulation.currentCashBRL) + totalReceived,
+                realizedProfitBRL:
+                  Number(simulation.realizedProfitBRL) + realizedProfit,
+              }
+            : {
+                currentCashUSD:
+                  Number(simulation.currentCashUSD) + totalReceived,
+                realizedProfitUSD:
+                  Number(simulation.realizedProfitUSD) + realizedProfit,
+              }
 
         await tx.simulation.update({
           where: { id: simulationId },
-          data: updateData
+          data: updateData,
         })
 
         // Registrar transação
@@ -266,37 +281,38 @@ export async function POST(
             userId,
             simulationId,
             ticker,
-            type: 'sell',
+            type: "sell",
             quantity,
             price,
             totalAmount: totalReceived,
-            currency
-          }
+            currency,
+          },
         })
       })
 
-      return NextResponse.json({
-        message: "Sell transaction completed successfully",
-        transaction: {
-          type: "sell",
-          ticker,
-          quantity,
-          price,
-          currency,
-          totalReceived,
-          realizedProfit
-        }
-      }, { status: 201 })
-
+      return NextResponse.json(
+        {
+          message: "Sell transaction completed successfully",
+          transaction: {
+            type: "sell",
+            ticker,
+            quantity,
+            price,
+            currency,
+            totalReceived,
+            realizedProfit,
+          },
+        },
+        { status: 201 }
+      )
     } else {
       return NextResponse.json(
         { error: "Invalid transaction type" },
         { status: 400 }
       )
     }
-
   } catch (error) {
-    console.error('Error processing simulation transaction:', error)
+    console.error("Error processing simulation transaction:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

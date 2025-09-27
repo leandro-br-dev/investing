@@ -3,11 +3,11 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import yahooFinance from "yahoo-finance2"
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
     try {
       // Teste simples do Yahoo Finance
       const quote = await yahooFinance.quote(ticker, {
-        fields: ['symbol', 'shortName', 'regularMarketPrice', 'currency']
+        fields: ["symbol", "shortName", "regularMarketPrice", "currency"],
       })
 
-      console.log('Resposta do Yahoo Finance:', quote)
+      console.log("Resposta do Yahoo Finance:", quote)
 
       return NextResponse.json({
         success: true,
@@ -32,30 +32,31 @@ export async function GET(req: NextRequest) {
           symbol: quote.symbol,
           name: quote.shortName,
           price: quote.regularMarketPrice,
-          currency: quote.currency
+          currency: quote.currency,
         },
         rawData: quote,
-        message: `Teste bem-sucedido para ${ticker}`
+        message: `Teste bem-sucedido para ${ticker}`,
       })
+    } catch (yahooError: unknown) {
+      console.error("Erro no Yahoo Finance:", yahooError)
 
-    } catch (yahooError: any) {
-      console.error('Erro no Yahoo Finance:', yahooError)
-
-      return NextResponse.json({
-        success: false,
-        error: "Yahoo Finance API Error",
-        details: yahooError.message,
-        ticker,
-        message: "Falha no teste do Yahoo Finance"
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Yahoo Finance API Error",
+          details: yahooError.message,
+          ticker,
+          message: "Falha no teste do Yahoo Finance",
+        },
+        { status: 500 }
+      )
     }
-
-  } catch (error: any) {
-    console.error('Erro geral na API de teste:', error)
+  } catch (error: unknown) {
+    console.error("Erro geral na API de teste:", error)
     return NextResponse.json(
       {
         error: "Internal server error",
-        details: error.message
+        details: error.message,
       },
       { status: 500 }
     )

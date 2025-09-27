@@ -1,13 +1,13 @@
-import cron from 'node-cron'
-import { prisma } from '@/lib/prisma'
+import cron from "node-cron"
+import { prisma } from "@/lib/prisma"
 
 interface SchedulerLog {
   id: string
   timestamp: Date
-  type: 'hourly' | 'daily' | 'manual'
-  trigger: 'users_online' | 'scheduled' | 'force'
-  status: 'started' | 'completed' | 'failed'
-  details: any
+  type: "hourly" | "daily" | "manual"
+  trigger: "users_online" | "scheduled" | "force"
+  status: "started" | "completed" | "failed"
+  details: unknown
   duration?: number
   recordsUpdated?: number
   errors?: number
@@ -21,8 +21,8 @@ class AutoUpdateScheduler {
   private maxLogs: number = 100
 
   // Cron jobs
-  private hourlyJob: any | null = null
-  private dailyJob: any | null = null
+  private hourlyJob: unknown | null = null
+  private dailyJob: unknown | null = null
 
   private constructor() {
     this.initializeCronJobs()
@@ -37,30 +37,32 @@ class AutoUpdateScheduler {
 
   private initializeCronJobs() {
     // Job de hora em hora (para quando há usuários online)
-    this.hourlyJob = cron.schedule('0 * * * *', async () => {
+    this.hourlyJob = cron.schedule("0 * * * *", async () => {
       const hasOnlineUsers = await this.checkOnlineUsers()
       if (hasOnlineUsers) {
-        await this.performUpdate('hourly', 'users_online')
+        await this.performUpdate("hourly", "users_online")
       }
     })
     this.hourlyJob.stop() // Não inicia automaticamente
 
     // Job diário (sempre executa às 6:00 AM)
-    this.dailyJob = cron.schedule('0 6 * * *', async () => {
-      await this.performUpdate('daily', 'scheduled')
+    this.dailyJob = cron.schedule("0 6 * * *", async () => {
+      await this.performUpdate("daily", "scheduled")
     })
     this.dailyJob.stop() // Não inicia automaticamente
 
-    console.log('📅 Scheduler inicializado - Jobs configurados mas não iniciados')
+    console.log(
+      "📅 Scheduler inicializado - Jobs configurados mas não iniciados"
+    )
   }
 
   public startScheduler() {
     if (this.hourlyJob && this.dailyJob) {
       this.hourlyJob.start()
       this.dailyJob.start()
-      console.log('🚀 Auto-update scheduler iniciado')
-      console.log('⏰ Job de hora em hora: ativado (quando há usuários online)')
-      console.log('🌅 Job diário: ativado (6:00 AM todos os dias)')
+      console.log("🚀 Auto-update scheduler iniciado")
+      console.log("⏰ Job de hora em hora: ativado (quando há usuários online)")
+      console.log("🌅 Job diário: ativado (6:00 AM todos os dias)")
     }
   }
 
@@ -68,7 +70,7 @@ class AutoUpdateScheduler {
     if (this.hourlyJob && this.dailyJob) {
       this.hourlyJob.stop()
       this.dailyJob.stop()
-      console.log('⏹️ Auto-update scheduler parado')
+      console.log("⏹️ Auto-update scheduler parado")
     }
   }
 
@@ -86,59 +88,71 @@ class AutoUpdateScheduler {
       const recentUsers = await prisma.user.count({
         where: {
           updatedAt: {
-            gte: thirtyMinutesAgo
-          }
-        }
+            gte: thirtyMinutesAgo,
+          },
+        },
       })
 
       // 2. Verificar transações recentes (indicam uso ativo)
       const recentTransactions = await prisma.transaction.count({
         where: {
           createdAt: {
-            gte: oneHourAgo
-          }
-        }
+            gte: oneHourAgo,
+          },
+        },
       })
 
       // 3. Verificar simulações ativas (alguém usando o simulador)
       const activeSimulations = await prisma.simulation.count({
         where: {
           updatedAt: {
-            gte: twoHoursAgo
+            gte: twoHoursAgo,
           },
-          isActive: true
-        }
+          isActive: true,
+        },
       })
 
-      const hasRecentActivity = recentUsers > 0 || recentTransactions > 0 || activeSimulations > 0
+      const hasRecentActivity =
+        recentUsers > 0 || recentTransactions > 0 || activeSimulations > 0
 
       // Durante horário comercial (8h-22h), priorizar dados reais mas com fallback
       if (hour >= 8 && hour <= 22) {
         if (hasRecentActivity) {
-          console.log(`👥 Usuários online detectados: ${recentUsers} usuários, ${recentTransactions} transações, ${activeSimulations} simulações ativas`)
+          console.log(
+            `👥 Usuários online detectados: ${recentUsers} usuários, ${recentTransactions} transações, ${activeSimulations} simulações ativas`
+          )
           return true
         } else {
-          console.log('🕒 Horário comercial - assumindo potencial atividade mesmo sem dados recentes')
+          console.log(
+            "🕒 Horário comercial - assumindo potencial atividade mesmo sem dados recentes"
+          )
           return true // Fallback para horário comercial
         }
       }
 
       // Fora do horário comercial, exigir atividade real
       if (hasRecentActivity) {
-        console.log(`🌙 Atividade fora do horário comercial detectada: ${recentUsers} usuários, ${recentTransactions} transações, ${activeSimulations} simulações`)
+        console.log(
+          `🌙 Atividade fora do horário comercial detectada: ${recentUsers} usuários, ${recentTransactions} transações, ${activeSimulations} simulações`
+        )
         return true
       }
 
-      console.log('😴 Nenhuma atividade recente detectada fora do horário comercial')
+      console.log(
+        "😴 Nenhuma atividade recente detectada fora do horário comercial"
+      )
       return false
     } catch (error) {
-      console.error('Erro ao verificar usuários online:', error)
+      console.error("Erro ao verificar usuários online:", error)
       // Em caso de erro, ser conservador e não atualizar
       return false
     }
   }
 
-  private async performUpdate(type: 'hourly' | 'daily' | 'manual', trigger: 'users_online' | 'scheduled' | 'force'): Promise<SchedulerLog> {
+  private async performUpdate(
+    type: "hourly" | "daily" | "manual",
+    trigger: "users_online" | "scheduled" | "force"
+  ): Promise<SchedulerLog> {
     const logId = `${type}_${Date.now()}`
     const startTime = new Date()
 
@@ -147,42 +161,44 @@ class AutoUpdateScheduler {
       timestamp: startTime,
       type,
       trigger,
-      status: 'started',
+      status: "started",
       details: {
         scheduledType: type,
-        triggerReason: trigger
-      }
+        triggerReason: trigger,
+      },
     }
 
     await this.addLog(log)
 
     if (this.isRunning) {
-      log.status = 'failed'
-      log.details.error = 'Update already running'
+      log.status = "failed"
+      log.details.error = "Update already running"
       this.updateLog(log)
       return log
     }
 
     this.isRunning = true
-    console.log(`🔄 Iniciando atualização automática (${type}) - Trigger: ${trigger}`)
+    console.log(
+      `🔄 Iniciando atualização automática (${type}) - Trigger: ${trigger}`
+    )
 
     try {
       // Determinar estratégia de atualização baseada no tipo
-      const updateStrategy = type === 'hourly' ? 'quotes' : 'historical'
-      const historicalDays = type === 'daily' ? 7 : 1 // Diário pega 7 dias, horário apenas 1
+      const updateStrategy = type === "hourly" ? "quotes" : "historical"
+      const historicalDays = type === "daily" ? 7 : 1 // Diário pega 7 dias, horário apenas 1
 
       // Chamar a API de atualização em lote
-      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+      const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
       const response = await fetch(`${baseUrl}/api/yahoo-finance/update-all`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           mode: updateStrategy,
           historicalDays,
-          replaceExisting: false
-        })
+          replaceExisting: false,
+        }),
       })
 
       const result = await response.json()
@@ -191,7 +207,7 @@ class AutoUpdateScheduler {
         const endTime = new Date()
         const duration = endTime.getTime() - startTime.getTime()
 
-        log.status = 'completed'
+        log.status = "completed"
         log.duration = duration
         log.recordsUpdated = result.results?.successful?.length || 0
         log.errors = result.results?.failed?.length || 0
@@ -199,26 +215,29 @@ class AutoUpdateScheduler {
           ...log.details,
           updateMode: updateStrategy,
           historicalDays,
-          results: result.results?.summary
+          results: result.results?.summary,
         }
 
         this.lastUpdate = endTime
-        console.log(`✅ Atualização automática concluída em ${Math.round(duration / 1000)}s`)
-        console.log(`📊 Atualizados: ${log.recordsUpdated}, Erros: ${log.errors}`)
+        console.log(
+          `✅ Atualização automática concluída em ${Math.round(duration / 1000)}s`
+        )
+        console.log(
+          `📊 Atualizados: ${log.recordsUpdated}, Erros: ${log.errors}`
+        )
       } else {
-        throw new Error(result.error || 'Update failed')
+        throw new Error(result.error || "Update failed")
       }
-
-    } catch (error: any) {
+    } catch (error: unknown) {
       const endTime = new Date()
       const duration = endTime.getTime() - startTime.getTime()
 
-      log.status = 'failed'
+      log.status = "failed"
       log.duration = duration
       log.details = {
         ...log.details,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       }
 
       console.error(`❌ Erro na atualização automática:`, error.message)
@@ -235,16 +254,18 @@ class AutoUpdateScheduler {
 
   // Método público para forçar atualização
   public async forceUpdate(): Promise<SchedulerLog> {
-    return this.performUpdate('manual', 'force')
+    return this.performUpdate("manual", "force")
   }
 
   // Enviar notificação de erro via webhook
-  private async sendErrorNotification(error: any, log: SchedulerLog) {
+  private async sendErrorNotification(error: unknown, log: SchedulerLog) {
     try {
       const webhookUrl = process.env.ERROR_WEBHOOK_URL
 
       if (!webhookUrl) {
-        console.log('⚠️ ERROR_WEBHOOK_URL não configurado - notificação de erro não enviada')
+        console.log(
+          "⚠️ ERROR_WEBHOOK_URL não configurado - notificação de erro não enviada"
+        )
         return
       }
 
@@ -255,56 +276,59 @@ class AutoUpdateScheduler {
             type: "header",
             text: {
               type: "plain_text",
-              text: "🚨 Falha no Agendamento Automático"
-            }
+              text: "🚨 Falha no Agendamento Automático",
+            },
           },
           {
             type: "section",
             fields: [
               {
                 type: "mrkdwn",
-                text: `*Tipo:* ${log.type}`
+                text: `*Tipo:* ${log.type}`,
               },
               {
                 type: "mrkdwn",
-                text: `*Trigger:* ${log.trigger}`
+                text: `*Trigger:* ${log.trigger}`,
               },
               {
                 type: "mrkdwn",
-                text: `*Timestamp:* ${log.timestamp.toISOString()}`
+                text: `*Timestamp:* ${log.timestamp.toISOString()}`,
               },
               {
                 type: "mrkdwn",
-                text: `*Duração:* ${log.duration ? Math.round(log.duration / 1000) + 's' : 'N/A'}`
-              }
-            ]
+                text: `*Duração:* ${log.duration ? Math.round(log.duration / 1000) + "s" : "N/A"}`,
+              },
+            ],
           },
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `*Erro:* \`${error.message}\``
-            }
-          }
-        ]
+              text: `*Erro:* \`${error.message}\``,
+            },
+          },
+        ],
       }
 
       const response = await fetch(webhookUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
-        console.log('✅ Notificação de erro enviada via webhook')
+        console.log("✅ Notificação de erro enviada via webhook")
       } else {
-        console.error('❌ Falha ao enviar notificação de erro:', response.status, response.statusText)
+        console.error(
+          "❌ Falha ao enviar notificação de erro:",
+          response.status,
+          response.statusText
+        )
       }
-
     } catch (notificationError) {
-      console.error('❌ Erro ao enviar notificação de erro:', notificationError)
+      console.error("❌ Erro ao enviar notificação de erro:", notificationError)
     }
   }
 
@@ -328,17 +352,17 @@ class AutoUpdateScheduler {
           duration: log.duration,
           recordsUpdated: log.recordsUpdated,
           errors: log.errors,
-          details: JSON.stringify(log.details)
-        }
+          details: JSON.stringify(log.details),
+        },
       })
     } catch (error) {
-      console.error('Erro ao salvar log no banco:', error)
+      console.error("Erro ao salvar log no banco:", error)
     }
   }
 
   private async updateLog(updatedLog: SchedulerLog) {
     // Atualizar no array em memória
-    const index = this.logs.findIndex(log => log.id === updatedLog.id)
+    const index = this.logs.findIndex((log) => log.id === updatedLog.id)
     if (index !== -1) {
       this.logs[index] = updatedLog
     }
@@ -348,18 +372,18 @@ class AutoUpdateScheduler {
       await prisma.schedulerLog.updateMany({
         where: {
           timestamp: updatedLog.timestamp,
-          type: updatedLog.type
+          type: updatedLog.type,
         },
         data: {
           status: updatedLog.status,
           duration: updatedLog.duration,
           recordsUpdated: updatedLog.recordsUpdated,
           errors: updatedLog.errors,
-          details: JSON.stringify(updatedLog.details)
-        }
+          details: JSON.stringify(updatedLog.details),
+        },
       })
     } catch (error) {
-      console.error('Erro ao atualizar log no banco:', error)
+      console.error("Erro ao atualizar log no banco:", error)
     }
   }
 
@@ -368,9 +392,9 @@ class AutoUpdateScheduler {
     return {
       isRunning: this.isRunning,
       lastUpdate: this.lastUpdate,
-      hourlyJobRunning: this.hourlyJob?.getStatus() === 'scheduled',
-      dailyJobRunning: this.dailyJob?.getStatus() === 'scheduled',
-      logsCount: this.logs.length
+      hourlyJobRunning: this.hourlyJob?.getStatus() === "scheduled",
+      dailyJobRunning: this.dailyJob?.getStatus() === "scheduled",
+      logsCount: this.logs.length,
     }
   }
 
@@ -378,24 +402,24 @@ class AutoUpdateScheduler {
     try {
       // Buscar logs do banco de dados (mais completo)
       const dbLogs = await prisma.schedulerLog.findMany({
-        orderBy: { timestamp: 'desc' },
-        take: limit
+        orderBy: { timestamp: "desc" },
+        take: limit,
       })
 
       // Converter para formato esperado
-      return dbLogs.map(log => ({
+      return dbLogs.map((log) => ({
         id: log.id,
         timestamp: log.timestamp,
-        type: log.type as 'hourly' | 'daily' | 'manual',
-        trigger: log.trigger as 'users_online' | 'scheduled' | 'force',
-        status: log.status as 'started' | 'completed' | 'failed',
+        type: log.type as "hourly" | "daily" | "manual",
+        trigger: log.trigger as "users_online" | "scheduled" | "force",
+        status: log.status as "started" | "completed" | "failed",
         duration: log.duration || undefined,
         recordsUpdated: log.recordsUpdated || undefined,
         errors: log.errors || undefined,
-        details: log.details ? JSON.parse(log.details) : {}
+        details: log.details ? JSON.parse(log.details) : {},
       }))
     } catch (error) {
-      console.error('Erro ao buscar logs do banco:', error)
+      console.error("Erro ao buscar logs do banco:", error)
       // Fallback para logs em memória
       return this.logs.slice(0, limit)
     }
@@ -407,72 +431,95 @@ class AutoUpdateScheduler {
 
       // Buscar estatísticas do banco de dados
       const totalLogs = await prisma.schedulerLog.count({
-        where: { timestamp: { gte: last24h } }
+        where: { timestamp: { gte: last24h } },
       })
 
       const successfulLogs = await prisma.schedulerLog.count({
         where: {
           timestamp: { gte: last24h },
-          status: 'completed'
-        }
+          status: "completed",
+        },
       })
 
       const failedLogs = await prisma.schedulerLog.count({
         where: {
           timestamp: { gte: last24h },
-          status: 'failed'
-        }
+          status: "failed",
+        },
       })
 
       // Calcular duração média e registros atualizados
       const completedLogsData = await prisma.schedulerLog.findMany({
         where: {
           timestamp: { gte: last24h },
-          status: 'completed'
+          status: "completed",
         },
         select: {
           duration: true,
-          recordsUpdated: true
-        }
+          recordsUpdated: true,
+        },
       })
 
-      const averageDuration = completedLogsData.length > 0
-        ? Math.round(completedLogsData.reduce((sum, log) => sum + (log.duration || 0), 0) / completedLogsData.length / 1000)
-        : 0
+      const averageDuration =
+        completedLogsData.length > 0
+          ? Math.round(
+              completedLogsData.reduce(
+                (sum, log) => sum + (log.duration || 0),
+                0
+              ) /
+                completedLogsData.length /
+                1000
+            )
+          : 0
 
-      const totalRecordsUpdated = completedLogsData.reduce((sum, log) => sum + (log.recordsUpdated || 0), 0)
+      const totalRecordsUpdated = completedLogsData.reduce(
+        (sum, log) => sum + (log.recordsUpdated || 0),
+        0
+      )
 
       return {
         last24h: {
           total: totalLogs,
           successful: successfulLogs,
           failed: failedLogs,
-          successRate: totalLogs > 0 ? Math.round((successfulLogs / totalLogs) * 100) : 0
+          successRate:
+            totalLogs > 0 ? Math.round((successfulLogs / totalLogs) * 100) : 0,
         },
         averageDuration,
-        totalRecordsUpdated
+        totalRecordsUpdated,
       }
     } catch (error) {
-      console.error('Erro ao buscar estatísticas do banco:', error)
+      console.error("Erro ao buscar estatísticas do banco:", error)
       // Fallback para logs em memória
-      const last24h = this.logs.filter(log =>
-        log.timestamp > new Date(Date.now() - 24 * 60 * 60 * 1000)
+      const last24h = this.logs.filter(
+        (log) => log.timestamp > new Date(Date.now() - 24 * 60 * 60 * 1000)
       )
 
-      const successful = last24h.filter(log => log.status === 'completed')
-      const failed = last24h.filter(log => log.status === 'failed')
+      const successful = last24h.filter((log) => log.status === "completed")
+      const failed = last24h.filter((log) => log.status === "failed")
 
       return {
         last24h: {
           total: last24h.length,
           successful: successful.length,
           failed: failed.length,
-          successRate: last24h.length > 0 ? Math.round((successful.length / last24h.length) * 100) : 0
+          successRate:
+            last24h.length > 0
+              ? Math.round((successful.length / last24h.length) * 100)
+              : 0,
         },
-        averageDuration: successful.length > 0
-          ? Math.round(successful.reduce((sum, log) => sum + (log.duration || 0), 0) / successful.length / 1000)
-          : 0,
-        totalRecordsUpdated: successful.reduce((sum, log) => sum + (log.recordsUpdated || 0), 0)
+        averageDuration:
+          successful.length > 0
+            ? Math.round(
+                successful.reduce((sum, log) => sum + (log.duration || 0), 0) /
+                  successful.length /
+                  1000
+              )
+            : 0,
+        totalRecordsUpdated: successful.reduce(
+          (sum, log) => sum + (log.recordsUpdated || 0),
+          0
+        ),
       }
     }
   }
@@ -484,12 +531,12 @@ export const scheduler = AutoUpdateScheduler.getInstance()
 // Função para inicializar o scheduler (chamada apenas no servidor quando necessário)
 export function initializeScheduler() {
   // Verificar se estamos no servidor
-  if (typeof window === 'undefined') {
-    if (process.env.NODE_ENV === 'production') {
+  if (typeof window === "undefined") {
+    if (process.env.NODE_ENV === "production") {
       scheduler.startScheduler()
-      console.log('🔄 Scheduler de atualização automática iniciado em produção')
+      console.log("🔄 Scheduler de atualização automática iniciado em produção")
     } else {
-      console.log('🔧 Scheduler disponível mas não iniciado em desenvolvimento')
+      console.log("🔧 Scheduler disponível mas não iniciado em desenvolvimento")
     }
   }
 }

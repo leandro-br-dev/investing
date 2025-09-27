@@ -1,12 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Loader2, TrendingUp, TrendingDown, BarChart3 } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
+// Removed unused recharts imports
 
 interface AssetChartModalProps {
   isOpen: boolean
@@ -32,7 +38,7 @@ export function AssetChartModal({
   isOpen,
   onClose,
   asset,
-  simulationDate
+  simulationDate,
 }: AssetChartModalProps) {
   const [loading, setLoading] = useState(false)
   const [priceData, setPriceData] = useState<PriceData[]>([])
@@ -51,7 +57,7 @@ export function AssetChartModal({
       startDate.setMonth(startDate.getMonth() - 12)
 
       const response = await fetch(
-        `/api/assets/${encodeURIComponent(asset.ticker)}/prices?startDate=${startDate.toISOString().split('T')[0]}&simulationDate=${endDate.toISOString().split('T')[0]}`
+        `/api/assets/${encodeURIComponent(asset.ticker)}/prices?startDate=${startDate.toISOString().split("T")[0]}&simulationDate=${endDate.toISOString().split("T")[0]}`
       )
 
       if (response.ok) {
@@ -72,7 +78,7 @@ export function AssetChartModal({
         }
       }
     } catch (error) {
-      console.error('Error fetching price data:', error)
+      console.error("Error fetching price data:", error)
     } finally {
       setLoading(false)
     }
@@ -82,11 +88,11 @@ export function AssetChartModal({
     if (isOpen && asset) {
       fetchPriceData()
     }
-  }, [isOpen, asset, simulationDate])
+  }, [isOpen, asset, simulationDate, fetchPriceData])
 
   // Calcular proximidade da mínima e potencial
-  const proximity = minPrice > 0 ? ((currentPrice / minPrice) - 1) * 100 : 0
-  const potential = currentPrice > 0 ? ((maxPrice / currentPrice) - 1) * 100 : 0
+  const proximity = minPrice > 0 ? (currentPrice / minPrice - 1) * 100 : 0
+  const potential = currentPrice > 0 ? (maxPrice / currentPrice - 1) * 100 : 0
 
   // Gráfico de Candlesticks profissional
   const renderCandlestickChart = () => {
@@ -102,27 +108,31 @@ export function AssetChartModal({
       low: Number(price.low),
       volume: Number(price.volume || 0),
       formattedDate: formatDate(price.date, { month: "short", day: "numeric" }),
-      isGreen: Number(price.close) >= Number(price.open)
+      isGreen: Number(price.close) >= Number(price.open),
     }))
 
     // Calcular escala dos preços
-    const allPrices = chartData.flatMap(d => [d.high, d.low])
+    const allPrices = chartData.flatMap((d) => [d.high, d.low])
     const minPrice = Math.min(...allPrices)
     const maxPrice = Math.max(...allPrices)
     const priceRange = maxPrice - minPrice
     const padding = priceRange * 0.1
 
-
     // Componente customizado para renderizar candlesticks
     const CandlestickChart = ({ data }: { data: typeof chartData }) => {
-      const [hoveredCandle, setHoveredCandle] = useState<typeof chartData[0] | null>(null)
+      const [hoveredCandle, setHoveredCandle] = useState<
+        (typeof chartData)[0] | null
+      >(null)
       const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
 
-      const handleMouseMove = (event: React.MouseEvent, candle: typeof chartData[0]) => {
+      const handleMouseMove = (
+        event: React.MouseEvent,
+        candle: (typeof chartData)[0]
+      ) => {
         const rect = event.currentTarget.getBoundingClientRect()
         setMousePos({
           x: event.clientX - rect.left,
-          y: event.clientY - rect.top
+          y: event.clientY - rect.top,
         })
         setHoveredCandle(candle)
       }
@@ -132,21 +142,53 @@ export function AssetChartModal({
           <svg viewBox="0 0 1000 400" className="w-full h-full">
             {/* Grid de fundo */}
             <defs>
-              <pattern id="grid" width="40" height="30" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 30" fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.1"/>
+              <pattern
+                id="grid"
+                width="40"
+                height="30"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M 40 0 L 0 0 0 30"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="0.5"
+                  opacity="0.1"
+                />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
 
             {/* Linhas de referência de preço */}
             {[0.2, 0.4, 0.6, 0.8].map((ratio, i) => {
-              const y = 350 - (ratio * 300)
-              const price = minPrice + (priceRange * ratio)
+              const y = 350 - ratio * 300
+              const price = minPrice + priceRange * ratio
               return (
                 <g key={i}>
-                  <line x1="100" y1={y} x2="950" y2={y} stroke="currentColor" strokeWidth="0.5" opacity="0.2" strokeDasharray="2,2" />
-                  <text x="95" y={y + 4} fontSize="11" fill="currentColor" opacity="0.6" textAnchor="end">
-                    {formatCurrency(price, (asset?.currency as "BRL" | "USD") || "USD").replace(/[R$USD\s]/g, '').trim()}
+                  <line
+                    x1="100"
+                    y1={y}
+                    x2="950"
+                    y2={y}
+                    stroke="currentColor"
+                    strokeWidth="0.5"
+                    opacity="0.2"
+                    strokeDasharray="2,2"
+                  />
+                  <text
+                    x="95"
+                    y={y + 4}
+                    fontSize="11"
+                    fill="currentColor"
+                    opacity="0.6"
+                    textAnchor="end"
+                  >
+                    {formatCurrency(
+                      price,
+                      (asset?.currency as "BRL" | "USD") || "USD"
+                    )
+                      .replace(/[R$USD\s]/g, "")
+                      .trim()}
                   </text>
                 </g>
               )
@@ -154,14 +196,30 @@ export function AssetChartModal({
 
             {/* Candlesticks */}
             {data.map((candle, index) => {
-              const x = 100 + (index * (850 / data.length))
+              const x = 100 + index * (850 / data.length)
               const candleWidth = Math.max(3, (850 / data.length) * 0.7)
 
               // Calcular posições Y baseadas nos preços
-              const highY = 30 + ((maxPrice + padding - candle.high) / (priceRange + 2 * padding)) * 320
-              const lowY = 30 + ((maxPrice + padding - candle.low) / (priceRange + 2 * padding)) * 320
-              const openY = 30 + ((maxPrice + padding - candle.open) / (priceRange + 2 * padding)) * 320
-              const closeY = 30 + ((maxPrice + padding - candle.close) / (priceRange + 2 * padding)) * 320
+              const highY =
+                30 +
+                ((maxPrice + padding - candle.high) /
+                  (priceRange + 2 * padding)) *
+                  320
+              const lowY =
+                30 +
+                ((maxPrice + padding - candle.low) /
+                  (priceRange + 2 * padding)) *
+                  320
+              const openY =
+                30 +
+                ((maxPrice + padding - candle.open) /
+                  (priceRange + 2 * padding)) *
+                  320
+              const closeY =
+                30 +
+                ((maxPrice + padding - candle.close) /
+                  (priceRange + 2 * padding)) *
+                  320
 
               const bodyTop = Math.min(openY, closeY)
               const bodyBottom = Math.max(openY, closeY)
@@ -201,11 +259,17 @@ export function AssetChartModal({
                     y={bodyTop}
                     width={candleWidth}
                     height={Math.max(1, bodyHeight)}
-                    fill={candle.isGreen ? (isHovered ? "#059669" : color) : "transparent"}
+                    fill={
+                      candle.isGreen
+                        ? isHovered
+                          ? "#059669"
+                          : color
+                        : "transparent"
+                    }
                     stroke={strokeColor}
                     strokeWidth={isHovered ? "2" : "1"}
                     opacity={isHovered ? 1 : 0.8}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: "pointer" }}
                     onMouseEnter={(e) => handleMouseMove(e, candle)}
                     onMouseLeave={() => setHoveredCandle(null)}
                   />
@@ -217,7 +281,7 @@ export function AssetChartModal({
                     width={candleWidth + 10}
                     height={lowY - highY + 10}
                     fill="transparent"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: "pointer" }}
                     onMouseEnter={(e) => handleMouseMove(e, candle)}
                     onMouseMove={(e) => handleMouseMove(e, candle)}
                     onMouseLeave={() => setHoveredCandle(null)}
@@ -227,22 +291,24 @@ export function AssetChartModal({
             })}
 
             {/* Eixo X com datas */}
-            {data.filter((_, i) => i % Math.ceil(data.length / 8) === 0).map((candle, index, filtered) => {
-              const x = 80 + (data.indexOf(candle) * (840 / data.length))
-              return (
-                <text
-                  key={index}
-                  x={x + (840 / data.length) / 2}
-                  y={385}
-                  fontSize="10"
-                  fill="currentColor"
-                  opacity="0.6"
-                  textAnchor="middle"
-                >
-                  {candle.formattedDate}
-                </text>
-              )
-            })}
+            {data
+              .filter((_, i) => i % Math.ceil(data.length / 8) === 0)
+              .map((candle, index) => {
+                const x = 80 + data.indexOf(candle) * (840 / data.length)
+                return (
+                  <text
+                    key={index}
+                    x={x + 840 / data.length / 2}
+                    y={385}
+                    fontSize="10"
+                    fill="currentColor"
+                    opacity="0.6"
+                    textAnchor="middle"
+                  >
+                    {candle.formattedDate}
+                  </text>
+                )
+              })}
           </svg>
 
           {/* Tooltip customizado */}
@@ -251,20 +317,64 @@ export function AssetChartModal({
               className="absolute z-10 pointer-events-none"
               style={{
                 left: Math.min(mousePos.x + 10, 600),
-                top: Math.max(mousePos.y - 100, 10)
+                top: Math.max(mousePos.y - 100, 10),
               }}
             >
               <div className="bg-background border rounded-lg p-3 shadow-lg max-w-xs">
-                <p className="font-medium mb-2">{formatDate(hoveredCandle.date)}</p>
+                <p className="font-medium mb-2">
+                  {formatDate(hoveredCandle.date)}
+                </p>
                 <div className="space-y-1 text-sm">
-                  <p>Abertura: <span className="font-medium">{formatCurrency(hoveredCandle.open, (asset?.currency as "BRL" | "USD") || "USD")}</span></p>
-                  <p className="text-red-600">Máxima: <span className="font-medium">{formatCurrency(hoveredCandle.high, (asset?.currency as "BRL" | "USD") || "USD")}</span></p>
-                  <p className="text-blue-600">Mínima: <span className="font-medium">{formatCurrency(hoveredCandle.low, (asset?.currency as "BRL" | "USD") || "USD")}</span></p>
-                  <p className={hoveredCandle.isGreen ? "text-green-600" : "text-red-600"}>
-                    Fechamento: <span className="font-medium">{formatCurrency(hoveredCandle.close, (asset?.currency as "BRL" | "USD") || "USD")}</span>
+                  <p>
+                    Abertura:{" "}
+                    <span className="font-medium">
+                      {formatCurrency(
+                        hoveredCandle.open,
+                        (asset?.currency as "BRL" | "USD") || "USD"
+                      )}
+                    </span>
                   </p>
-                  <p className={`text-sm ${hoveredCandle.isGreen ? "text-green-600" : "text-red-600"}`}>
-                    Variação: {((hoveredCandle.close - hoveredCandle.open) / hoveredCandle.open * 100).toFixed(2)}%
+                  <p className="text-red-600">
+                    Máxima:{" "}
+                    <span className="font-medium">
+                      {formatCurrency(
+                        hoveredCandle.high,
+                        (asset?.currency as "BRL" | "USD") || "USD"
+                      )}
+                    </span>
+                  </p>
+                  <p className="text-blue-600">
+                    Mínima:{" "}
+                    <span className="font-medium">
+                      {formatCurrency(
+                        hoveredCandle.low,
+                        (asset?.currency as "BRL" | "USD") || "USD"
+                      )}
+                    </span>
+                  </p>
+                  <p
+                    className={
+                      hoveredCandle.isGreen ? "text-green-600" : "text-red-600"
+                    }
+                  >
+                    Fechamento:{" "}
+                    <span className="font-medium">
+                      {formatCurrency(
+                        hoveredCandle.close,
+                        (asset?.currency as "BRL" | "USD") || "USD"
+                      )}
+                    </span>
+                  </p>
+                  <p
+                    className={`text-sm ${hoveredCandle.isGreen ? "text-green-600" : "text-red-600"}`}
+                  >
+                    Variação:{" "}
+                    {(
+                      ((hoveredCandle.close - hoveredCandle.open) /
+                        hoveredCandle.open) *
+                      100
+                    ).toFixed(2)}
+                    %
                   </p>
                 </div>
               </div>
@@ -278,11 +388,14 @@ export function AssetChartModal({
       <div className="bg-card p-4 rounded-lg border">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="h-5 w-5 text-primary" />
-          <h4 className="text-lg font-medium">Gráfico de Candlesticks (12 meses)</h4>
+          <h4 className="text-lg font-medium">
+            Gráfico de Candlesticks (12 meses)
+          </h4>
         </div>
 
         <div className="text-sm text-muted-foreground mb-4">
-          Período: {formatDate(priceData[0]?.date)} até {formatDate(priceData[priceData.length - 1]?.date)}
+          Período: {formatDate(priceData[0]?.date)} até{" "}
+          {formatDate(priceData[priceData.length - 1]?.date)}
         </div>
 
         <CandlestickChart data={chartData} />
@@ -310,7 +423,8 @@ export function AssetChartModal({
             {asset?.ticker} - {asset?.name}
           </DialogTitle>
           <DialogDescription>
-            Visualize o histórico de preços e análise técnica do ativo selecionado
+            Visualize o histórico de preços e análise técnica do ativo
+            selecionado
           </DialogDescription>
         </DialogHeader>
 
@@ -326,17 +440,27 @@ export function AssetChartModal({
               <div className="bg-card p-3 rounded-lg border">
                 <div className="text-sm text-muted-foreground">Preço Atual</div>
                 <div className="text-lg font-bold">
-                  {formatCurrency(currentPrice, (asset?.currency as "BRL" | "USD") || "USD")}
+                  {formatCurrency(
+                    currentPrice,
+                    (asset?.currency as "BRL" | "USD") || "USD"
+                  )}
                 </div>
               </div>
 
               <div className="bg-card p-3 rounded-lg border">
-                <div className="text-sm text-muted-foreground">Proximidade Mínima</div>
-                <div className={cn(
-                  "text-lg font-bold",
-                  proximity <= 10 ? "text-green-600" :
-                  proximity <= 25 ? "text-yellow-600" : "text-red-600"
-                )}>
+                <div className="text-sm text-muted-foreground">
+                  Proximidade Mínima
+                </div>
+                <div
+                  className={cn(
+                    "text-lg font-bold",
+                    proximity <= 10
+                      ? "text-green-600"
+                      : proximity <= 25
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                  )}
+                >
                   +{proximity.toFixed(2)}%
                 </div>
               </div>
@@ -349,7 +473,9 @@ export function AssetChartModal({
               </div>
 
               <div className="bg-card p-3 rounded-lg border">
-                <div className="text-sm text-muted-foreground">Data Simulação</div>
+                <div className="text-sm text-muted-foreground">
+                  Data Simulação
+                </div>
                 <div className="text-lg font-bold">
                   {formatDate(simulationDate || "")}
                 </div>
@@ -358,14 +484,21 @@ export function AssetChartModal({
               <div className="bg-card p-3 rounded-lg border">
                 <div className="text-sm text-muted-foreground">Volume</div>
                 <div className="text-lg font-bold text-blue-600">
-                  {priceData.length > 0 ? (priceData[priceData.length - 1].volume || 0).toLocaleString() : "N/A"}
+                  {priceData.length > 0
+                    ? (
+                        priceData[priceData.length - 1].volume || 0
+                      ).toLocaleString()
+                    : "N/A"}
                 </div>
               </div>
 
               <div className="bg-card p-3 rounded-lg border">
                 <div className="text-sm text-muted-foreground">Amplitude</div>
                 <div className="text-lg font-bold text-purple-600">
-                  {maxPrice > 0 && minPrice > 0 ? (((maxPrice - minPrice) / minPrice) * 100).toFixed(1) + "%" : "N/A"}
+                  {maxPrice > 0 && minPrice > 0
+                    ? (((maxPrice - minPrice) / minPrice) * 100).toFixed(1) +
+                      "%"
+                    : "N/A"}
                 </div>
               </div>
             </div>
@@ -378,7 +511,10 @@ export function AssetChartModal({
                   <span className="text-sm font-medium">Mínima (12M)</span>
                 </div>
                 <div className="text-lg font-bold">
-                  {formatCurrency(minPrice, (asset?.currency as "BRL" | "USD") || "USD")}
+                  {formatCurrency(
+                    minPrice,
+                    (asset?.currency as "BRL" | "USD") || "USD"
+                  )}
                 </div>
               </div>
 
@@ -388,7 +524,10 @@ export function AssetChartModal({
                   <span className="text-sm font-medium">Máxima (12M)</span>
                 </div>
                 <div className="text-lg font-bold">
-                  {formatCurrency(maxPrice, (asset?.currency as "BRL" | "USD") || "USD")}
+                  {formatCurrency(
+                    maxPrice,
+                    (asset?.currency as "BRL" | "USD") || "USD"
+                  )}
                 </div>
               </div>
             </div>
@@ -398,19 +537,28 @@ export function AssetChartModal({
 
             {/* Informações adicionais */}
             <div className="bg-muted/30 p-4 rounded-lg">
-              <h4 className="text-sm font-medium mb-2">Análise de Oportunidade</h4>
+              <h4 className="text-sm font-medium mb-2">
+                Análise de Oportunidade
+              </h4>
               <div className="text-sm text-muted-foreground space-y-1">
-                <p>• <strong>Proximidade da Mínima:</strong> Quanto menor, melhor a oportunidade de compra</p>
-                <p>• <strong>Potencial de Retorno:</strong> Baseado na máxima histórica dos últimos 12 meses</p>
-                <p>• <strong>Data da Simulação:</strong> Preços baseados na data atual da simulação</p>
+                <p>
+                  • <strong>Proximidade da Mínima:</strong> Quanto menor, melhor
+                  a oportunidade de compra
+                </p>
+                <p>
+                  • <strong>Potencial de Retorno:</strong> Baseado na máxima
+                  histórica dos últimos 12 meses
+                </p>
+                <p>
+                  • <strong>Data da Simulação:</strong> Preços baseados na data
+                  atual da simulação
+                </p>
               </div>
             </div>
 
             {/* Ações */}
             <div className="flex justify-end">
-              <Button onClick={onClose}>
-                Fechar
-              </Button>
+              <Button onClick={onClose}>Fechar</Button>
             </div>
           </div>
         )}

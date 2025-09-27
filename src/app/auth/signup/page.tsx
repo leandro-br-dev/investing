@@ -3,7 +3,13 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { BarChart3, Eye, EyeOff, Loader2, Check, X } from "lucide-react"
@@ -19,7 +25,7 @@ export default function SignUpPage() {
     name: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -36,18 +42,19 @@ export default function SignUpPage() {
   ]
 
   // Verificar requisitos da senha
-  passwordRequirements.forEach(req => {
+  passwordRequirements.forEach((req) => {
     req.met = req.regex.test(formData.password)
   })
 
-  const isPasswordValid = passwordRequirements.every(req => req.met)
+  const isPasswordValid = passwordRequirements.every((req) => req.met)
   const doPasswordsMatch = formData.password === formData.confirmPassword
-  const isFormValid = formData.name && formData.email && isPasswordValid && doPasswordsMatch
+  const isFormValid =
+    formData.name && formData.email && isPasswordValid && doPasswordsMatch
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }))
     setError("")
   }
@@ -82,9 +89,12 @@ export default function SignUpPage() {
       setTimeout(() => {
         router.push("/auth/signin")
       }, 2000)
-
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Erro interno. Tente novamente.")
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Erro interno. Tente novamente."
+      )
     } finally {
       setLoading(false)
     }
@@ -101,7 +111,9 @@ export default function SignUpPage() {
                   <Check className="h-6 w-6 text-success" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">Conta criada com sucesso!</h2>
+                  <h2 className="text-lg font-semibold">
+                    Conta criada com sucesso!
+                  </h2>
                   <p className="text-sm text-muted-foreground mt-1">
                     Redirecionando para o login...
                   </p>
@@ -209,14 +221,21 @@ export default function SignUpPage() {
                 {/* Password Requirements */}
                 {formData.password && (
                   <div className="space-y-1">
-                    {passwordRequirements.map((req, index) => (
-                      <div key={index} className="flex items-center space-x-2 text-xs">
+                    {passwordRequirements.map(($1) => (
+                      <div
+                        key={index}
+                        className="flex items-center space-x-2 text-xs"
+                      >
                         {req.met ? (
                           <Check className="h-3 w-3 text-success" />
                         ) : (
                           <X className="h-3 w-3 text-error" />
                         )}
-                        <span className={req.met ? "text-success" : "text-muted-foreground"}>
+                        <span
+                          className={
+                            req.met ? "text-success" : "text-muted-foreground"
+                          }
+                        >
                           {req.text}
                         </span>
                       </div>
@@ -226,7 +245,10 @@ export default function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
+                <label
+                  htmlFor="confirmPassword"
+                  className="text-sm font-medium"
+                >
                   Confirmar senha
                 </label>
                 <div className="relative">

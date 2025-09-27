@@ -13,9 +13,7 @@ import {
   Sun,
   Moon,
   Monitor,
-  History,
   Shield,
-  TrendingUp
 } from "lucide-react"
 
 import { useTheme } from "@/lib/theme-provider"
@@ -27,31 +25,31 @@ const navigation = [
     name: "Painel",
     href: "/",
     icon: BarChart3,
-    description: "Oportunidades de investimento"
+    description: "Oportunidades de investimento",
   },
   {
     name: "Carteira",
     href: "/portfolio",
     icon: Briefcase,
-    description: "Gestão de carteira"
+    description: "Gestão de carteira",
   },
   {
     name: "Simulador",
     href: "/simulator",
     icon: Play,
-    description: "Simulações de estratégia"
+    description: "Simulações de estratégia",
   },
   {
     name: "Admin",
     href: "/admin",
     icon: Shield,
-    description: "Yahoo Finance API"
+    description: "Yahoo Finance API",
   },
   {
     name: "Configurações",
     href: "/settings",
     icon: Settings,
-    description: "Configurações do sistema"
+    description: "Configurações do sistema",
   },
 ]
 
@@ -61,7 +59,7 @@ interface MainNavProps {
 
 export function MainNav({ className }: MainNavProps) {
   const pathname = usePathname()
-  const { theme, setTheme, actualTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const cycleTheme = () => {
@@ -79,10 +77,12 @@ export function MainNav({ className }: MainNavProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className={cn(
-        "hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 lg:w-72 lg:bg-card lg:border-r",
-        className
-      )}>
+      <div
+        className={cn(
+          "hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 lg:w-72 lg:bg-card lg:border-r",
+          className
+        )}
+      >
         {/* Logo/Header */}
         <div className="flex h-16 shrink-0 items-center border-b px-6">
           <Link href="/" className="flex items-center space-x-2">
@@ -112,7 +112,9 @@ export function MainNav({ className }: MainNavProps) {
                         <item.icon className="h-6 w-6 shrink-0" />
                         <div className="flex flex-col">
                           <span>{item.name}</span>
-                          <span className="text-xs opacity-75">{item.description}</span>
+                          <span className="text-xs opacity-75">
+                            {item.description}
+                          </span>
                         </div>
                       </Link>
                     </li>
@@ -133,7 +135,12 @@ export function MainNav({ className }: MainNavProps) {
           >
             {getThemeIcon()}
             <span className="ml-2">
-              Theme: {theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light"}
+              Theme:{" "}
+              {theme === "system"
+                ? "System"
+                : theme === "dark"
+                  ? "Dark"
+                  : "Light"}
             </span>
           </Button>
         </div>
@@ -148,7 +155,12 @@ export function MainNav({ className }: MainNavProps) {
           </Link>
 
           <div className="flex items-center space-x-1">
-            <Button variant="ghost" size="sm" onClick={cycleTheme} className="h-8 w-8 p-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cycleTheme}
+              className="h-8 w-8 p-0"
+            >
               {getThemeIcon()}
             </Button>
             <Button
@@ -204,7 +216,9 @@ export function MainNav({ className }: MainNavProps) {
                                   <item.icon className="h-6 w-6 shrink-0" />
                                   <div className="flex flex-col">
                                     <span>{item.name}</span>
-                                    <span className="text-xs opacity-75">{item.description}</span>
+                                    <span className="text-xs opacity-75">
+                                      {item.description}
+                                    </span>
                                   </div>
                                 </Link>
                               </li>
@@ -237,14 +251,18 @@ export function MainNav({ className }: MainNavProps) {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <item.icon className={cn(
-                  "h-4 w-4 mb-1",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )} />
-                <span className={cn(
-                  "text-xs font-medium",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )}>
+                <item.icon
+                  className={cn(
+                    "h-4 w-4 mb-1",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
                   {item.name}
                 </span>
               </Link>

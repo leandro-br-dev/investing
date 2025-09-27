@@ -3,11 +3,11 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { globalQuoteCache, globalHistoricalCache } from "@/lib/quote-cache"
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -25,13 +25,13 @@ export async function GET(req: NextRequest) {
             quotes: {
               ...quoteStats,
               hasRecentData,
-              description: "Cotações em tempo real"
+              description: "Cotações em tempo real",
             },
             historical: {
-              description: "Dados históricos"
-            }
+              description: "Dados históricos",
+            },
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         })
 
       case "check":
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
           ticker: ticker.toUpperCase(),
           inCache,
           data: cached || null,
-          message: inCache ? "Found in cache" : "Not in cache"
+          message: inCache ? "Found in cache" : "Not in cache",
         })
 
       default:
@@ -61,13 +61,12 @@ export async function GET(req: NextRequest) {
             "stats - Get cache statistics",
             "check - Check if ticker is in cache (requires ?ticker=SYMBOL)",
             "clear - Clear all cache (POST method)",
-            "invalidate - Invalidate specific ticker (POST method)"
-          ]
+            "invalidate - Invalidate specific ticker (POST method)",
+          ],
         })
     }
-
   } catch (error) {
-    console.error('Error in cache API:', error)
+    console.error("Error in cache API:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -79,7 +78,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -94,7 +93,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           message: "All caches cleared",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         })
 
       case "invalidate":
@@ -116,9 +115,9 @@ export async function POST(req: NextRequest) {
           ticker: ticker.toUpperCase(),
           invalidated: {
             quotes: quoteInvalidated,
-            historical: historicalInvalidated
+            historical: historicalInvalidated,
           },
-          message: `Cache invalidated for ${ticker}`
+          message: `Cache invalidated for ${ticker}`,
         })
 
       case "warm-up":
@@ -135,14 +134,18 @@ export async function POST(req: NextRequest) {
         const results = []
         const errors = []
 
-        for (const ticker of tickers.slice(0, 10)) { // Limite de 10 para warm-up
+        for (const ticker of tickers.slice(0, 10)) {
+          // Limite de 10 para warm-up
           try {
             // Fazer requisição para nossa API de cotação para popular o cache
-            const response = await fetch(`${req.nextUrl.origin}/api/yahoo-finance/quote?ticker=${ticker}`, {
-              headers: {
-                'Cookie': req.headers.get('cookie') || ''
+            const response = await fetch(
+              `${req.nextUrl.origin}/api/yahoo-finance/quote?ticker=${ticker}`,
+              {
+                headers: {
+                  Cookie: req.headers.get("cookie") || "",
+                },
               }
-            })
+            )
 
             const data = await response.json()
 
@@ -150,18 +153,18 @@ export async function POST(req: NextRequest) {
               results.push({
                 ticker,
                 cached: !data.cached, // Se veio do cache, não era warm-up
-                success: true
+                success: true,
               })
             } else {
               errors.push({
                 ticker,
-                error: data.error
+                error: data.error,
               })
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             errors.push({
               ticker,
-              error: error.message
+              error: error.message,
             })
           }
         }
@@ -174,9 +177,9 @@ export async function POST(req: NextRequest) {
             successful: results.length,
             failed: errors.length,
             results,
-            errors
+            errors,
           },
-          message: "Cache warm-up completed"
+          message: "Cache warm-up completed",
         })
 
       default:
@@ -185,9 +188,8 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         )
     }
-
   } catch (error) {
-    console.error('Error in cache management API:', error)
+    console.error("Error in cache management API:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -17,15 +17,12 @@ export async function POST(req: NextRequest) {
       ticker,
       period1,
       period2,
-      interval = '1d',
-      replaceExisting = false
+      interval = "1d",
+      replaceExisting = false,
     } = body
 
     if (!ticker) {
-      return NextResponse.json(
-        { error: "Ticker is required" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Ticker is required" }, { status: 400 })
     }
 
     // Converter ticker brasileiro para formato Yahoo Finance
@@ -40,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     // Verificar se o ativo existe na nossa base
     const asset = await prisma.asset.findUnique({
-      where: { ticker }
+      where: { ticker },
     })
 
     if (!asset) {
@@ -53,14 +50,18 @@ export async function POST(req: NextRequest) {
     try {
       // Definir período padrão (últimos 2 anos se não especificado)
       const endDate = period2 ? new Date(period2) : new Date()
-      const startDate = period1 ? new Date(period1) : new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
+      const startDate = period1
+        ? new Date(period1)
+        : new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
 
-      console.log(`Buscando dados históricos para ${yahooTicker} de ${startDate.toISOString()} até ${endDate.toISOString()}`)
+      console.log(
+        `Buscando dados históricos para ${yahooTicker} de ${startDate.toISOString()} até ${endDate.toISOString()}`
+      )
 
       const historical = await yahooFinance.historical(yahooTicker, {
         period1: startDate,
         period2: endDate,
-        interval: interval as any
+        interval: interval as unknown,
       })
 
       if (!historical || historical.length === 0) {
@@ -75,12 +76,12 @@ export async function POST(req: NextRequest) {
       // Se replaceExisting = true, limpar dados existentes
       if (replaceExisting) {
         await prisma.historicalPrice.deleteMany({
-          where: { ticker }
+          where: { ticker },
         })
       }
 
       let processed = 0
-      let skipped = 0
+      const skipped = 0
       let errors = 0
 
       // Processar em lotes para evitar sobrecarga
@@ -90,20 +91,20 @@ export async function POST(req: NextRequest) {
 
         const operations = batch.map(async (record) => {
           try {
-            const date = record.date.toISOString().split('T')[0]
+            const date = record.date.toISOString().split("T")[0]
 
             await prisma.historicalPrice.upsert({
               where: {
                 ticker_date: {
                   ticker,
-                  date
-                }
+                  date,
+                },
               },
               update: {
                 open: record.open || 0,
                 high: record.high || 0,
                 low: record.low || 0,
-                close: record.close || 0
+                close: record.close || 0,
               },
               create: {
                 ticker,
@@ -111,13 +112,16 @@ export async function POST(req: NextRequest) {
                 open: record.open || 0,
                 high: record.high || 0,
                 low: record.low || 0,
-                close: record.close || 0
-              }
+                close: record.close || 0,
+              },
             })
 
             processed++
           } catch (error) {
-            console.error(`Erro ao processar registro para ${record.date}:`, error)
+            console.error(
+              `Erro ao processar registro para ${record.date}:`,
+              error
+            )
             errors++
           }
         })
@@ -131,34 +135,35 @@ export async function POST(req: NextRequest) {
           ticker,
           yahooTicker,
           period: {
-            start: startDate.toISOString().split('T')[0],
-            end: endDate.toISOString().split('T')[0]
+            start: startDate.toISOString().split("T")[0],
+            end: endDate.toISOString().split("T")[0],
           },
           records: {
             found: historical.length,
             processed,
             skipped,
-            errors
-          }
+            errors,
+          },
         },
-        message: `Historical data updated for ${ticker}`
+        message: `Historical data updated for ${ticker}`,
       })
-
-    } catch (yahooError: any) {
-      console.error(`Erro ao buscar dados históricos do Yahoo Finance para ${yahooTicker}:`, yahooError)
+    } catch (yahooError: unknown) {
+      console.error(
+        `Erro ao buscar dados históricos do Yahoo Finance para ${yahooTicker}:`,
+        yahooError
+      )
 
       return NextResponse.json(
         {
           error: `Failed to fetch historical data for ${ticker}`,
           details: yahooError.message,
-          ticker: yahooTicker
+          ticker: yahooTicker,
         },
         { status: 500 }
       )
     }
-
   } catch (error) {
-    console.error('Error in historical data API:', error)
+    console.error("Error in historical data API:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -167,11 +172,11 @@ export async function POST(req: NextRequest) {
 }
 
 // GET para buscar dados históricos já armazenados
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !(session as any).user?.id) {
+    if (!session || !(session as unknown).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -193,12 +198,12 @@ export async function GET(req: NextRequest) {
       where: {
         ticker,
         date: {
-          gte: cutoffDate.toISOString().split('T')[0]
-        }
+          gte: cutoffDate.toISOString().split("T")[0],
+        },
       },
       orderBy: {
-        date: 'desc'
-      }
+        date: "desc",
+      },
     })
 
     return NextResponse.json({
@@ -209,12 +214,11 @@ export async function GET(req: NextRequest) {
         records: historicalData.length,
         period: days,
         oldest: historicalData[historicalData.length - 1]?.date,
-        newest: historicalData[0]?.date
-      }
+        newest: historicalData[0]?.date,
+      },
     })
-
   } catch (error) {
-    console.error('Error fetching historical data:', error)
+    console.error("Error fetching historical data:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
