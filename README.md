@@ -560,6 +560,12 @@
   - Monitoramento de performance
   - Analytics básico (opcional)
 
+**⚠️ Limitação Plano Hobby Vercel:**
+- Removido cron job hourly (0 * * * *)
+- Mantido apenas cron job daily (0 6 * * *)
+- Plano Hobby permite apenas execuções diárias
+- Job diário foi otimizado para atualização completa dos dados
+
 ## Funcionalidades Core Identificadas (do Projeto Antigo)
 
 ### **Funcionalidades Principais a Migrar**

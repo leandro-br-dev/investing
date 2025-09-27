@@ -11,14 +11,16 @@ export async function GET(req: NextRequest) {
 
     console.log('🌅 Vercel Cron: Executando job diário')
 
-    // Executar atualização diária (sempre executa, independente de usuários online)
+    // Executar atualização diária completa (substitui o hourly job)
+    // Faz uma atualização mais abrangente já que só executamos uma vez por dia
     const updateResult = await scheduler.forceUpdate()
 
     return NextResponse.json({
       success: true,
-      message: 'Daily cron job completed',
+      message: 'Daily cron job completed (includes full market data update)',
       log: updateResult,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      note: 'Hobby plan limitation: Running comprehensive daily update instead of hourly'
     })
 
   } catch (error: any) {
