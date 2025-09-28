@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ import {
   Shield,
   Bell,
   Loader2,
+  LogOut,
 } from "lucide-react"
 import { useTheme } from "@/lib/theme-provider"
 // cn import removed as unused
@@ -409,6 +410,23 @@ export default function SettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-medium">Sair da Conta</p>
+                <p className="text-sm text-muted-foreground">
+                  Fazer logout e retornar à página de login
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </div>
             <div>
               <Label className="text-sm font-medium">Alterar Senha</Label>
               <div className="space-y-2 mt-2">

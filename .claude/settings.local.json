@@ -46,7 +46,8 @@
       "Bash(npx next lint:*)",
       "Bash(del:*)",
       "Bash(grep:*)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const { name, email, password } = await req.json()
@@ -60,6 +62,23 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Erro ao criar usuário:', error)
+
+    // Verificar se é erro de banco de dados (tabela inexistente)
+    if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+      return NextResponse.json(
+        { error: "Sistema em configuração. Tente novamente em alguns minutos." },
+        { status: 503 }
+      )
+    }
+
+    // Erro de duplicação de usuário
+    if (error?.code === 'P2002') {
+      return NextResponse.json(
+        { error: "Usuário já existe com este email" },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
