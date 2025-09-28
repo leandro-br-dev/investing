@@ -48,7 +48,8 @@
       "Bash(grep:*)",
       "Bash(vercel:*)",
       "Bash(pkill:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []
