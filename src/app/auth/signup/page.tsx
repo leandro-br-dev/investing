@@ -221,7 +221,7 @@ export default function SignUpPage() {
                 {/* Password Requirements */}
                 {formData.password && (
                   <div className="space-y-1">
-                    {passwordRequirements.map(($1) => (
+                    {passwordRequirements.map((req, index) => (
                       <div
                         key={index}
                         className="flex items-center space-x-2 text-xs"

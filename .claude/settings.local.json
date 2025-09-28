@@ -45,7 +45,8 @@
       "Bash(git push:*)",
       "Bash(npx next lint:*)",
       "Bash(del:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(vercel:*)"
     ],
     "deny": [],
     "ask": []

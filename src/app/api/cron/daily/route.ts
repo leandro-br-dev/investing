@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { scheduler } from "@/lib/scheduler"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(req: NextRequest) {
   try {
     // Verificar se é uma requisição do Vercel Cron
