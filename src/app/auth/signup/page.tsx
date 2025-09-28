@@ -35,16 +35,23 @@ export default function SignUpPage() {
   const router = useRouter()
 
   const passwordRequirements: PasswordRequirement[] = [
-    { regex: /.{8,}/, text: "Pelo menos 8 caracteres", met: false },
-    { regex: /[A-Z]/, text: "Uma letra maiúscula", met: false },
-    { regex: /[a-z]/, text: "Uma letra minúscula", met: false },
-    { regex: /\d/, text: "Um número", met: false },
+    {
+      regex: /.{8,}/,
+      text: "Pelo menos 8 caracteres",
+      met: /.{8,}/.test(formData.password),
+    },
+    {
+      regex: /[A-Z]/,
+      text: "Uma letra maiúscula",
+      met: /[A-Z]/.test(formData.password),
+    },
+    {
+      regex: /[a-z]/,
+      text: "Uma letra minúscula",
+      met: /[a-z]/.test(formData.password),
+    },
+    { regex: /\d/, text: "Um número", met: /\d/.test(formData.password) },
   ]
-
-  // Verificar requisitos da senha
-  passwordRequirements.forEach((req) => {
-    req.met = req.regex.test(formData.password)
-  })
 
   const isPasswordValid = passwordRequirements.every((req) => req.met)
   const doPasswordsMatch = formData.password === formData.confirmPassword
