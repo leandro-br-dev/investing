@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface ModalSkeletonProps {
   isOpen: boolean
@@ -11,10 +11,12 @@ export function ModalSkeleton({ isOpen }: ModalSkeletonProps) {
     <Dialog open={isOpen}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <div className="flex items-center space-x-2">
-            <Skeleton className="h-5 w-5" />
-            <Skeleton className="h-5 w-24" />
-          </div>
+          <DialogTitle>
+            <div className="flex items-center space-x-2">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -65,10 +67,12 @@ export function ChartModalSkeleton({ isOpen }: { isOpen: boolean }) {
     <Dialog open={isOpen}>
       <DialogContent className="sm:max-w-[95vw] lg:max-w-[1200px]">
         <DialogHeader>
-          <div className="flex items-center space-x-2">
-            <Skeleton className="h-5 w-5" />
-            <Skeleton className="h-5 w-32" />
-          </div>
+          <DialogTitle>
+            <div className="flex items-center space-x-2">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">

@@ -68,31 +68,52 @@ export function AssetChartModal({
 
         if (prices.length > 0) {
           // Preço atual (mais recente)
-          setCurrentPrice(prices[prices.length - 1].close)
+          setCurrentPrice(prices[prices.length - 1].close || 0)
 
-          // Calcular mínima e máxima no período
-          const lows = prices.map((p: PriceData) => p.low)
-          const highs = prices.map((p: PriceData) => p.high)
-          setMinPrice(Math.min(...lows))
-          setMaxPrice(Math.max(...highs))
+          // Calcular mínima e máxima no período com validação
+          const lows = prices.map((p: PriceData) => Number(p.low) || 0).filter(v => v > 0)
+          const highs = prices.map((p: PriceData) => Number(p.high) || 0).filter(v => v > 0)
+
+          if (lows.length > 0 && highs.length > 0) {
+            setMinPrice(Math.min(...lows))
+            setMaxPrice(Math.max(...highs))
+          } else {
+            setMinPrice(0)
+            setMaxPrice(0)
+          }
+        } else {
+          // Reset values when no data
+          setCurrentPrice(0)
+          setMinPrice(0)
+          setMaxPrice(0)
         }
       }
     } catch (error) {
       console.error("Error fetching price data:", error)
+      // Reset values on error
+      setPriceData([])
+      setCurrentPrice(0)
+      setMinPrice(0)
+      setMaxPrice(0)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (isOpen && asset) {
+    if (isOpen && asset && simulationDate) {
       fetchPriceData()
     }
-  }, [isOpen, asset, simulationDate, fetchPriceData])
+  }, [isOpen, asset?.ticker, simulationDate])
 
-  // Calcular proximidade da mínima e potencial
-  const proximity = minPrice > 0 ? (currentPrice / minPrice - 1) * 100 : 0
-  const potential = currentPrice > 0 ? (maxPrice / currentPrice - 1) * 100 : 0
+  // Calcular proximidade da mínima e potencial com validações
+  const proximity = minPrice > 0 && currentPrice > 0 && !isNaN(currentPrice) && !isNaN(minPrice)
+    ? ((currentPrice / minPrice - 1) * 100)
+    : 0
+
+  const potential = currentPrice > 0 && maxPrice > 0 && !isNaN(currentPrice) && !isNaN(maxPrice)
+    ? ((maxPrice / currentPrice - 1) * 100)
+    : 0
 
   // Gráfico de Candlesticks profissional
   const renderCandlestickChart = () => {
@@ -111,8 +132,13 @@ export function AssetChartModal({
       isGreen: Number(price.close) >= Number(price.open),
     }))
 
-    // Calcular escala dos preços
-    const allPrices = chartData.flatMap((d) => [d.high, d.low])
+    // Calcular escala dos preços com validação
+    const allPrices = chartData.flatMap((d) => [d.high, d.low]).filter(p => !isNaN(p) && p > 0)
+
+    if (allPrices.length === 0) {
+      return <div className="text-center py-8 text-muted-foreground">Dados insuficientes para exibir gráfico</div>
+    }
+
     const minPrice = Math.min(...allPrices)
     const maxPrice = Math.max(...allPrices)
     const priceRange = maxPrice - minPrice
@@ -199,27 +225,16 @@ export function AssetChartModal({
               const x = 100 + index * (850 / data.length)
               const candleWidth = Math.max(3, (850 / data.length) * 0.7)
 
-              // Calcular posições Y baseadas nos preços
-              const highY =
-                30 +
-                ((maxPrice + padding - candle.high) /
-                  (priceRange + 2 * padding)) *
-                  320
-              const lowY =
-                30 +
-                ((maxPrice + padding - candle.low) /
-                  (priceRange + 2 * padding)) *
-                  320
-              const openY =
-                30 +
-                ((maxPrice + padding - candle.open) /
-                  (priceRange + 2 * padding)) *
-                  320
-              const closeY =
-                30 +
-                ((maxPrice + padding - candle.close) /
-                  (priceRange + 2 * padding)) *
-                  320
+              // Calcular posições Y baseadas nos preços com validação
+              const priceToY = (price: number) => {
+                if (isNaN(price) || priceRange + 2 * padding === 0) return 200
+                return 30 + ((maxPrice + padding - price) / (priceRange + 2 * padding)) * 320
+              }
+
+              const highY = priceToY(candle.high)
+              const lowY = priceToY(candle.low)
+              const openY = priceToY(candle.open)
+              const closeY = priceToY(candle.close)
 
               const bodyTop = Math.min(openY, closeY)
               const bodyBottom = Math.max(openY, closeY)
