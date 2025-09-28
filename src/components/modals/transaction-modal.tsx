@@ -177,7 +177,7 @@ export function TransactionModal({
 
       fetchPrefilledAsset()
     }
-  }, [isOpen, prefilledAsset, simulationDate, selectedAsset, handleAssetSelect])
+  }, [isOpen, prefilledAsset, simulationDate, selectedAsset])
 
   // Auto-select asset if initialTicker is provided
   useEffect(() => {
@@ -195,7 +195,7 @@ export function TransactionModal({
         }, 500)
       })
     }
-  }, [initialTicker, isOpen, assets, handleAssetSelect, searchAssets])
+  }, [initialTicker, isOpen])
 
   // Auto-select exact match when assets are loaded
   useEffect(() => {
@@ -205,7 +205,7 @@ export function TransactionModal({
         handleAssetSelect(exactMatch)
       }
     }
-  }, [assets, initialTicker, selectedAsset, handleAssetSelect])
+  }, [assets, initialTicker, selectedAsset])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

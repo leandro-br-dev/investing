@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,13 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
     strategy: "conservative",
     description: "",
   })
+
+  const [maxDate, setMaxDate] = useState("")
+
+  useEffect(() => {
+    // Set max date on client side to avoid hydration issues
+    setMaxDate(new Date().toISOString().split("T")[0])
+  }, [])
 
   const strategies = [
     {
@@ -93,7 +100,7 @@ export function SimulationModal({ isOpen, onClose }: SimulationModalProps) {
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, startDate: e.target.value }))
               }
-              max={new Date().toISOString().split("T")[0]}
+              max={maxDate}
             />
           </div>
         </div>

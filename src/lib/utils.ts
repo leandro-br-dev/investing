@@ -11,12 +11,18 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Format currency values for display
+ * Safe for SSR/hydration
  */
 export function formatCurrency(
   value: number,
   currency: "BRL" | "USD" = "USD",
   options: Intl.NumberFormatOptions = {}
 ): string {
+  // Validate input
+  if (typeof value !== "number" || isNaN(value)) {
+    return currency === "BRL" ? "R$ 0,00" : "$0.00"
+  }
+
   const defaults: Intl.NumberFormatOptions = {
     style: "currency",
     currency,
@@ -26,7 +32,13 @@ export function formatCurrency(
 
   const locale = currency === "BRL" ? "pt-BR" : "en-US"
 
-  return new Intl.NumberFormat(locale, { ...defaults, ...options }).format(value)
+  try {
+    return new Intl.NumberFormat(locale, { ...defaults, ...options }).format(value)
+  } catch (error) {
+    // Fallback for SSR or formatting errors
+    const symbol = currency === "BRL" ? "R$" : "$"
+    return `${symbol} ${value.toFixed(2)}`
+  }
 }
 
 /**
@@ -139,9 +151,14 @@ export function sleep(ms: number): Promise<void> {
 
 /**
  * Generate a random ID (simple implementation)
+ * Uses crypto.randomUUID when available to avoid hydration issues
  */
 export function generateId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36)
+  if (typeof window !== "undefined" && window.crypto?.randomUUID) {
+    return window.crypto.randomUUID()
+  }
+  // Fallback for server-side or older browsers
+  return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2)
 }
 
 /**
