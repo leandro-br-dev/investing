@@ -385,6 +385,7 @@ export default function DashboardPage() {
               name: chartModal.name || "",
               currency: chartModal.currency || "USD"
             } : null}
+            simulationDate={new Date().toISOString().split('T')[0]}
           />
         </Suspense>
       )}
