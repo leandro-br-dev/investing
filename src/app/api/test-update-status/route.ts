@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getPrismaClient } from "@/lib/init-db"
+import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const prisma = await getPrismaClient()
-    console.log("🔍 Testando busca de dados históricos...")
+        console.log("🔍 Testando busca de dados históricos...")
 
     // Buscar informações sobre dados mais recentes
     const recentData = await prisma.historicalPrice.findMany({

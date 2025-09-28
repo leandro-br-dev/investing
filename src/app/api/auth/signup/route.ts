@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
-import { getPrismaClient } from "@/lib/init-db"
+import { prisma } from "@/lib/prisma"
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
     // Inicializar banco de dados
-    const prisma = await getPrismaClient()
-
+    
     const { name, email, password } = await req.json()
 
     // Validações básicas

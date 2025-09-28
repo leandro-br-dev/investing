@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import yahooFinance from "yahoo-finance2"
-import { getPrismaClient } from "@/lib/init-db"
+import { prisma } from "@/lib/prisma"
 
 export async function POST(req: NextRequest) {
   try {
-    const prisma = await getPrismaClient()
     const session = await getServerSession(authOptions)
 
     if (!session || !(session as unknown).user?.id) {

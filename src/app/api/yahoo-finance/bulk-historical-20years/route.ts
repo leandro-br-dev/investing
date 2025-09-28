@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import yahooFinance from "yahoo-finance2"
-import { getPrismaClient } from "@/lib/init-db"
+import { prisma } from "@/lib/prisma"
 
 // Estado global para tracking do progresso (em produção usar Redis ou DB)
 let loadingStatus = {
@@ -46,8 +46,7 @@ export async function POST(req: NextRequest) {
 
     // Buscar ativos
     const whereClause = currency ? { currency } : {}
-    const prisma = await getPrismaClient()
-    const assets = await prisma.asset.findMany({
+        const assets = await prisma.asset.findMany({
       where: whereClause,
       select: {
         ticker: true,
@@ -140,8 +139,7 @@ async function processAssetsInBackground(
 
       // Verificar se já tem dados suficientes
       if (!replaceExisting) {
-        const prisma = await getPrismaClient()
-        const existingCount = await prisma.historicalPrice.count({
+                const existingCount = await prisma.historicalPrice.count({
           where: { ticker },
         })
 
@@ -176,8 +174,7 @@ async function processAssetsInBackground(
 
       // Remover dados existentes se solicitado
       if (replaceExisting) {
-        const prisma = await getPrismaClient()
-        const deletedCount = await prisma.historicalPrice.deleteMany({
+                const deletedCount = await prisma.historicalPrice.deleteMany({
           where: { ticker },
         })
         console.log(
@@ -194,8 +191,7 @@ async function processAssetsInBackground(
         const miniLot = historical.slice(j, j + miniLotSize)
 
         try {
-          const prisma = await getPrismaClient()
-          await prisma.$transaction(
+                    await prisma.$transaction(
             async (tx) => {
               for (const record of miniLot) {
                 try {

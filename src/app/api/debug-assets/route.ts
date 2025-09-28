@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getPrismaClient } from "@/lib/init-db"
+import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(req: NextRequest) {
   try {
-    const prisma = await getPrismaClient()
-    console.log("🔍 Investigando ativos na base de dados...")
+        console.log("🔍 Investigando ativos na base de dados...")
 
     // Buscar TODOS os ativos
     const allAssets = await prisma.asset.findMany({

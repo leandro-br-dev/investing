@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
-import { getPrismaClient } from "@/lib/init-db"
+import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
 const registerSchema = z.object({
@@ -15,8 +15,7 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const prisma = await getPrismaClient()
-    const body = await req.json()
+        const body = await req.json()
 
     // Validar dados de entrada
     const validatedData = registerSchema.parse(body)

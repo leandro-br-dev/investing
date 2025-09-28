@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { getPrismaClient } from "@/lib/init-db"
+import { prisma } from "@/lib/prisma"
 import { getLongCacheHeaders } from "@/lib/cache"
 
 export async function GET(
@@ -9,8 +9,7 @@ export async function GET(
   { params }: { params: { ticker: string } }
 ) {
   try {
-    const prisma = await getPrismaClient()
-    const session = await getServerSession(authOptions)
+        const session = await getServerSession(authOptions)
 
     if (!session || !(session as { user?: { id: string } }).user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
