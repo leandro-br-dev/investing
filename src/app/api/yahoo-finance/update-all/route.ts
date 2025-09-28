@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/init-db"
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    const prisma = await getPrismaClient()
     const session = await getServerSession(authOptions)
 
     if (!session || !(session as unknown).user?.id) {
@@ -171,6 +172,7 @@ export async function POST() {
 // GET para status da última atualização
 export async function GET() {
   try {
+    const prisma = await getPrismaClient()
     const session = await getServerSession(authOptions)
 
     if (!session || !(session as unknown).user?.id) {

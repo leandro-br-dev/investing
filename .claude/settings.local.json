@@ -47,7 +47,8 @@
       "Bash(del:*)",
       "Bash(grep:*)",
       "Bash(vercel:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

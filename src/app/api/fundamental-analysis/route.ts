@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { FundamentalAnalysisEngine } from "@/lib/fundamental-analysis"
-import { prisma } from "@/lib/prisma"
+import { getPrismaClient } from "@/lib/init-db"
 
 // GET - Obter análises fundamentalistas
 export async function GET(req: NextRequest) {
   try {
+    const prisma = await getPrismaClient()
     const session = await getServerSession(authOptions)
 
     if (!session || !(session as unknown).user?.id) {
@@ -126,6 +127,7 @@ export async function GET(req: NextRequest) {
 // POST - Executar análise fundamentalista
 export async function POST(req: NextRequest) {
   try {
+    const prisma = await getPrismaClient()
     const session = await getServerSession(authOptions)
 
     if (!session || !(session as unknown).user?.id) {
@@ -296,8 +298,9 @@ export async function POST(req: NextRequest) {
 }
 
 // DELETE - Limpar análises antigas
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   try {
+    const prisma = await getPrismaClient()
     const session = await getServerSession(authOptions)
 
     if (!session || !(session as unknown).user?.id) {
